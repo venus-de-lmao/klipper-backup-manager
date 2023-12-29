@@ -1,104 +1,69 @@
 #!/usr/bin/env python3
 
-import argparse
+import os, sys, shutil
 import tarfile
-import os
-import sys
-from subprocess import run as run_cmd
-import shutil
-import click
 from datetime import datetime as dt
-from io import StringIO 
-
-class Capturing(list):
-    def __enter__(self):
-        self._stdout = sys.stdout
-        sys.stdout = self._stringio = StringIO()
-        return self
-    def __exit__(self, *args):
-        self.extend(self._stringio.getvalue().splitlines())
-        del self._stringio    # free up some memory
-        sys.stdout = self._stdout
-
+from subprocess import run as run_cmd
+default_log_level = logging.CRITICAL
 homedir = os.path.expanduser('~')
 kbm_dir = f'{homedir}/klipper-backup-manager'
 log_dir=f'{kbm_dir}/logs'
-log_file='blank.log'
 backup_dir=f'{kbm_dir}/backups'
- 
 @click.command()
 @click.option('--config', '-c', default=False, is_flag=True, help='back up Klipper config files')
 @click.option('--gcode', '-g', default=False, is_flag=True, help='back up gcodes')
 @click.option('--verbose', '-v', default=False, is_flag=True, help='enable verbose mode')
 @click.option('--log', '-l', default=False, is_flag=True, help='enable logging')
 def main(config, gcode, verbose, log):
-    global do_cfg
-    global do_gco
-    global is_logging
     global is_verbose
-    global log_file
-    do_cfg = config;
-    do_gco = gcode;
-    is_logging = log
     is_verbose = verbose
     if os.getcwd() != homedir: os.chdir(homedir)
-    if is_logging: 
+    if log:
         log_file = dt.now().strftime('kbm_%Y-%m-%d_%H%M%S.log')
         if not os.path.isdir(log_dir):
             try:
                 os.mkdir(log_dir)
-            except Exception as e:
-                verboseprint('Error creating log directory.')
+                log_path = f'{log_dir}/{log_file}'
+            except PermissionError as e:
+                verboseprint('Could not create log directory.')
                 verboseprint(e)
-                sys.exit()
-
-        print(log_file)
-    do_backup(do_cfg, do_gco)
+                log_path = f'{homedir}/{log_file}'
+        logging.basicConfig(filename=log_path, filemode='w', level=logging.DEBUG)
+    else:
+        log_path = f'{homedir}/log_file'
+        logging.basicConfig(filename=log_path, filemode='w', level=default_log_level)
+    logging.info('Starting backup.')
+    do_backup(config, gcode)
+    logging.info('End of backup.')
 
 def verboseprint(*args, **kwargs):
     if is_verbose: print(*args, **kwargs)
-    if is_logging: log_line(*args)
-
-def log_line(*args):
-    global is_logging
-    log_msg = ' '.join(args)
-    stamped = dt.now().strftime('%Y/%m/%d %H:%M:%S')+' '+log_msg
-    try:
-        with open(f'{log_dir}/{log_file}', 'a') as l:
-            l.write('\n')
-            l.write(stamped)
-    except PermissionError:
-        print(f'Permission denied accessing {log_file}. Logging disabled.')
-        is_logging = False
-        return None
-    except Exception as e:
-        print(f'Unexpected error writing to {log_file}.\n{e}\nLogging disabled.')
-        is_logging = False
-        return None
 
 def do_upload(file):
     rclone_cmd = ['rclone', 'copy', file, 'gdrive:/kbm_backups']
-    try:
-        with Capturing() as output:
-            run_cmd(rclone_cmd)
-        for o in output:
-            verboseprint(o)
-        verboseprint(f'{file} uploaded.')
+    result = run_cmd(rclone_cmd)
+    if result.returncode == 0:
+        success = f'{file} uploaded successfully.'
+        verboseprint(success)
+        logging.info(success)
         return True
     except:
-        verboseprint(f'Upload of {file} failed.')
-        return False
+        uploadfailed = f'Failed to upload {file}.'
+        verboseprint(uploadfailed)
+        cmd_string = ' '.join(rclone_cmd)
+        logging.error(uploadfailed)
+        logging.error('Subprocess %s failed with return code %s.', cmd_string, result.returncode)
 
 # Pass 'tag' to this function to generate a time/datestamped archive file
 # in the format tag_YYYY-mm-dd_hhmmss.tar.xz
-# Standard use for 
 def make_tarball(tag, targets, working_dir=homedir):
     if os.getcwd() != working_dir: os.chdir(working_dir)
     if not os.path.isdir(backup_dir):
         try:
             os.mkdir(backup_dir)
-        except Exception as e:
+        except PermissionError as e:
             verboseprint('Error creating backup directory, aborting')
+            logging.critical('Could not create backup directory. Aborting backup.')
             verboseprint(e)
             sys.exit()
     filename = f'{tag}_{timestamp}.tar.xz'
@@ -107,20 +72,19 @@ def make_tarball(tag, targets, working_dir=homedir):
     except Exception as e:
         verboseprint(f'Error opening {filename} in write mode. Aborting.')
         verboseprint(e)
+        logging.critical('Could not open %s. Aborting backup.', filename)
         sys.exit()
     for t in targets:
         try:
-            tar.add(t, filter=lambda tarinfo: None if os.path.splitext(tarinfo.name[1]) in exclude_exts else tarinfo)
+            tar.add(t, filter=lambda tarinfo: None if os.path.splitext(tarinfo.name)[1] in exclude_exts else tarinfo)
+            
         except FileNotFoundError:
             verboseprint(f'{t} not found.')
-        except Exception as e:
-            verboseprint(e)
+            logging.warning('Target %s not found. Not added to %s.', t, tar.name)
+        except PermissionError:
+            verboseprint(f'Permission denied adding {t} to 
             sys.exit()
     verboseprint(f'Backed up the following to {filename}:')
-    with Capturing() as output:
-        tar.list()
-    for o in output:
-        verboseprint(o)
     path = f'{working_dir}/{filename}'
     tar.close()
     do_upload(path)
