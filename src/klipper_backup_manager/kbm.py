@@ -1,26 +1,38 @@
+#!/usr/bin/env python3
+
 import argparse
 import tarfile
 import os
 import sys
 from subprocess import run as run_cmd
-from shutil import move
-import toml
+import shutil
+import click
 from datetime import datetime as dt
-homedir = os.path.expanduser('~')
-log_dir=f'{homedir}/kbm/logs'
-backup_dir=f'{homedir}/kbm/backups'
-config='klipper-backup-manager/kbm.toml'
-exclude_exts=['.tmp','.ignore','.swp']
-verbose = False
-logging = False
 
-# Pass file as True to produce a timestamp suitable for a filename. Otherwise returns a plain date/time for logging.
+homedir = os.path.expanduser('~')
+kbm_dir = f'{homedir}/klipper-backup-manager'
+log_dir=f'{kbm_dir}/logs'
+backup_dir=f'{kbm_dir}/backups'
+ 
+@click.command()
+@click.option('--config', '-c', default=False, is_flag=True, help='back up Klipper config files')
+@click.option('--gcode', '-g', default=False, is_flag=True, help='back up gcodes')
+@click.option('--verbose', '-v', default=False, is_flag=True, help='enable verbose mode')
+@click.option('--log', '-l', default=False, is_flag=True, help='enable logging')
+def main(config, gcode, verbose, log):
+    do_cfg = config;
+    do_gco = gcode;
+    if os.getcwd() != homedir: os.chdir(homedir)
+    log_file = log_dir+kbmlib.timestamp().strftime('kbm_%Y-%m-%d_%H%M%S.log') if logging else None
+    is_logging = log
+    is_verbose = verbose
+    do_backup()
 
 def verboseprint(*args, **kwargs):
-    if verbose: print(*args, **kwargs)
-    if logging: log_line(log_file, *args)
+    if is_verbose: print(*args, **kwargs)
+    if is_logging: log_line(log_file, *args)
 
-def log_line(*args): 
+def log_line(*args):
     log_msg = ' '.join(args)
     stamped = dt.now().strftime('%Y/%m/%d %H:%M:%S')+' '+log_msg
     try:
@@ -29,11 +41,11 @@ def log_line(*args):
             l.write(stamped)
     except PermissionError:
         print(f'Permission denied accessing {log_file}. Logging disabled.')
-        logging = False
+        is_logging = False
         return None
     except Exception as e:
         print(f'Unexpected error writing to {log_file}.\n{e}\nLogging disabled.')
-        logging = False
+        is_logging = False
         return None
 
 def do_upload(file):
@@ -69,58 +81,21 @@ def make_tarball(tag, targets, working_dir=homedir):
     verboseprint(f'Backed up the following to {filename}:')
     tar.list()
     tar.close()
-    return filename
+    path = f'{working_dir}/{filename}'
+    if os.path.isfile(path): shutil.move(path, backup_dir)
 
-parser = argparse.ArgumentParser(
-        prog='Klipper Backup Manager'
-        description='Create, restore, and manage backups of 3D printer files on a Klipper instance.'
-        epilog='')
-
-# I might add more options to this in the future.
-parser.add_argument('-s', '--save', action='store',
-        choices=['config','gcode','all'], nargs=1,
-        dest='is_backup',
-        required=True,
-        metavar='TARGET',
-        help='Specify which targets to back up.')
-
-parser.add_argument('-v', '--verbose', action='store_true',
-        dest='is_verbose',
-        required=False,
-        default=False,
-        help='Enable verbose mode. Prints all output to stdout.')
-
-parser.add_argument('-l', '--log', action='store_true',
-        dest='is_logging',
-        required=False,
-        default=False,
-        help=f'Enable logging. Writes all output to a text file in {log_dir}. This is off by default. Works with or without verbose mode.')
-
-
-def do_backup(config=False, gcode=False):
-    if backup_type='gcode'
-        gco_backup = make_tarball('gcode', ['printer_data/gcodes'], working_dir=homedir) if gcode else None
-        if gco_backup:
-            move(gco_backup, backup_dir) if do_upload(gco_backup)
-            verboseprint(f'{gco_backup} backed up to {backup_dir}.')
-         cfg_backup = make_tarball('config', ['printer_data/config'], working_dir=homedir) if config else None
-         if cfg_backup:
-             move(cfg_backup, backup_dir) if do_upload(cfg_backup)
-             verboseprint(f'{cfg_backup} backed up to {backup_dir}.')
-        else:
-            verboseprint(f'gcode backup failed.')
-            return False
-        return True
+def do_backup():
+    ctar = lambda do_cfg: make_tarball('config',['printer_data/config'], working_dir=homedir) if do_cfg else None
+    gtar = lambda do_gco: make_tarball('gcode',['printer_data/gcodes'], working_dir=homedir) if do_gco else None
 
 if __name__ == '__main__':
-    run_args=parser.parse_args()
-    if os.getcwd() != homedir: os.chdir(homedir)
-    log_file = log_dir+kbmlib.timestamp().strftime('kbm_%Y-%m-%d_%H%M%S.log') if logging else None
-    if run_args['is_backup'] == 'config':
-        do_backup(config=True, gcode=False)
-    elif run_args['is_backup'] == 'gcode':
-        do_backup(config=False, gcode=True)
-    else:
-        do_backup(config=True, gcode=True)
-    verbose = run_args['is_verbose']
-    logging = run_args['is_logging']
+    if len(sys.argv) < 2:
+        print('Option not recognized.')
+        print('Try\x1b[1m',sys.argv[0],'--help\x1b[0m')
+        sys.exit()
+    config='klipper-backup-manager/kbm.toml'
+    exclude_exts=['.tmp','.ignore','.swp']
+    verbose = False
+    logging = False
+
+    main()
