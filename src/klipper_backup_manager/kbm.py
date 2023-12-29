@@ -3,6 +3,7 @@ import tarfile
 import os
 import sys
 from subprocess import run as run_cmd
+from shutil import move
 import toml
 from datetime import datetime as dt
 homedir = os.path.expanduser('~')
@@ -35,6 +36,15 @@ def log_line(*args):
         logging = False
         return None
 
+def do_upload(file):
+    rclone_cmd = ['rclone', 'copy', file, 'gdrive:/kbm_backups']
+    try:
+        run_cmd(rclone_cmd)
+        verboseprint(f'{file} uploaded.')
+        return True
+    except:
+        verboseprint(f'Upload of {file} failed.')
+        return False
 
 # Pass 'tag' to this function to generate a time/datestamped archive file
 # in the format tag_YYYY-mm-dd_hhmmss.tar.xz
@@ -87,23 +97,30 @@ parser.add_argument('-l', '--log', action='store_true',
         help=f'Enable logging. Writes all output to a text file in {log_dir}. This is off by default. Works with or without verbose mode.')
 
 
-def do_backup(file, backup_type='rclone'):
-    if backup_type == 'rclone':
-        rclone_cmd = ['rclone', 'copy', file, 'gdrive:/kbm_backups']
-        run_cmd(rclone_cmd)
+def do_backup(config=False, gcode=False):
+    if backup_type='gcode'
+        gco_backup = make_tarball('gcode', ['printer_data/gcodes'], working_dir=homedir) if gcode else None
+        if gco_backup:
+            move(gco_backup, backup_dir) if do_upload(gco_backup)
+            verboseprint(f'{gco_backup} backed up to {backup_dir}.')
+         cfg_backup = make_tarball('config', ['printer_data/config'], working_dir=homedir) if config else None
+         if cfg_backup:
+             move(cfg_backup, backup_dir) if do_upload(cfg_backup)
+             verboseprint(f'{cfg_backup} backed up to {backup_dir}.')
+        else:
+            verboseprint(f'gcode backup failed.')
+            return False
         return True
-#    elif backup_type =='ssh':
-        # I'm still figuring out how to handle this
 
 if __name__ == '__main__':
     run_args=parser.parse_args()
     if os.getcwd() != homedir: os.chdir(homedir)
     log_file = log_dir+kbmlib.timestamp().strftime('kbm_%Y-%m-%d_%H%M%S.log') if logging else None
     if run_args['is_backup'] == 'config':
-        
+        do_backup(config=True, gcode=False)
     elif run_args['is_backup'] == 'gcode':
-        # do gcode backup
+        do_backup(config=False, gcode=True)
     else:
-        do both
+        do_backup(config=True, gcode=True)
     verbose = run_args['is_verbose']
     logging = run_args['is_logging']
