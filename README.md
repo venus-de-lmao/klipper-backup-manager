@@ -11,9 +11,10 @@
 - [License](#license)
 
 ## Installation
+As PyPI is currently closed and this project is still in the early development stages, please clone this repository to install it.
 
 ```console
-pip install klipper-backup-manager
+git clone https://github.com/venus-de-lmao/klipper-backup-manager.git
 ```
 
 ## License
