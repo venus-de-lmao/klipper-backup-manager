@@ -8,10 +8,22 @@ from subprocess import run as run_cmd
 import shutil
 import click
 from datetime import datetime as dt
+from io import StringIO 
+
+class Capturing(list):
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = StringIO()
+        return self
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio    # free up some memory
+        sys.stdout = self._stdout
 
 homedir = os.path.expanduser('~')
 kbm_dir = f'{homedir}/klipper-backup-manager'
 log_dir=f'{kbm_dir}/logs'
+log_file='blank.log'
 backup_dir=f'{kbm_dir}/backups'
  
 @click.command()
@@ -20,23 +32,39 @@ backup_dir=f'{kbm_dir}/backups'
 @click.option('--verbose', '-v', default=False, is_flag=True, help='enable verbose mode')
 @click.option('--log', '-l', default=False, is_flag=True, help='enable logging')
 def main(config, gcode, verbose, log):
+    global do_cfg
+    global do_gco
+    global is_logging
+    global is_verbose
+    global log_file
     do_cfg = config;
     do_gco = gcode;
-    if os.getcwd() != homedir: os.chdir(homedir)
-    log_file = log_dir+kbmlib.timestamp().strftime('kbm_%Y-%m-%d_%H%M%S.log') if logging else None
     is_logging = log
     is_verbose = verbose
-    do_backup()
+    if os.getcwd() != homedir: os.chdir(homedir)
+    if is_logging: 
+        log_file = dt.now().strftime('kbm_%Y-%m-%d_%H%M%S.log')
+        if not os.path.isdir(log_dir):
+            try:
+                os.mkdir(log_dir)
+            except Exception as e:
+                verboseprint('Error creating log directory.')
+                verboseprint(e)
+                sys.exit()
+
+        print(log_file)
+    do_backup(do_cfg, do_gco)
 
 def verboseprint(*args, **kwargs):
     if is_verbose: print(*args, **kwargs)
-    if is_logging: log_line(log_file, *args)
+    if is_logging: log_line(*args)
 
 def log_line(*args):
+    global is_logging
     log_msg = ' '.join(args)
     stamped = dt.now().strftime('%Y/%m/%d %H:%M:%S')+' '+log_msg
     try:
-        with open(file, 'a') as l:
+        with open(f'{log_dir}/{log_file}', 'a') as l:
             l.write('\n')
             l.write(stamped)
     except PermissionError:
@@ -51,7 +79,10 @@ def log_line(*args):
 def do_upload(file):
     rclone_cmd = ['rclone', 'copy', file, 'gdrive:/kbm_backups']
     try:
-        run_cmd(rclone_cmd)
+        with Capturing() as output:
+            run_cmd(rclone_cmd)
+        for o in output:
+            verboseprint(o)
         verboseprint(f'{file} uploaded.')
         return True
     except:
@@ -63,7 +94,14 @@ def do_upload(file):
 # Standard use for 
 def make_tarball(tag, targets, working_dir=homedir):
     if os.getcwd() != working_dir: os.chdir(working_dir)
-    filename = tag+f'_{timestamp(file=True)}.tar.xz'
+    if not os.path.isdir(backup_dir):
+        try:
+            os.mkdir(backup_dir)
+        except Exception as e:
+            verboseprint('Error creating backup directory, aborting')
+            verboseprint(e)
+            sys.exit()
+    filename = f'{tag}_{timestamp}.tar.xz'
     try:
         tar = tarfile.open(filename, 'w:xz')
     except Exception as e:
@@ -79,23 +117,29 @@ def make_tarball(tag, targets, working_dir=homedir):
             verboseprint(e)
             sys.exit()
     verboseprint(f'Backed up the following to {filename}:')
-    tar.list()
-    tar.close()
+    with Capturing() as output:
+        tar.list()
+    for o in output:
+        verboseprint(o)
     path = f'{working_dir}/{filename}'
-    if os.path.isfile(path): shutil.move(path, backup_dir)
+    tar.close()
+    do_upload(path)
+    shutil.move(path, f'{backup_dir}/{filename}')
+    return path
 
-def do_backup():
+def do_backup(c, g):
     ctar = lambda do_cfg: make_tarball('config',['printer_data/config'], working_dir=homedir) if do_cfg else None
     gtar = lambda do_gco: make_tarball('gcode',['printer_data/gcodes'], working_dir=homedir) if do_gco else None
+    ctar(c)
+    gtar(g)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print('Option not recognized.')
         print('Try\x1b[1m',sys.argv[0],'--help\x1b[0m')
         sys.exit()
+    timestamp = dt.now().strftime('%Y-%m-%d_%H%M%S')
     config='klipper-backup-manager/kbm.toml'
     exclude_exts=['.tmp','.ignore','.swp']
-    verbose = False
-    logging = False
 
     main()
