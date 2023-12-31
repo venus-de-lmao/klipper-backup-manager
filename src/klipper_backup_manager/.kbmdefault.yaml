@@ -1,0 +1,36 @@
+BackupManagers:
+  default:
+    kbmlocal: '~/.kbmlocal'
+    homedir: '~'
+      # this is the directory your printer_data is located in
+      # it might not necessarily be your actual home dir
+      # but that is the default and if you're running a single
+      # Klipper instance it's best to not change this
+    backupdir: 'backups' # this will be a directory inside kbmlocal
+    klipper:
+      configs:
+        location: 'config'
+        lastbackup: False
+        file: False
+      database:
+        location: 'database'
+        lastbackup: False
+        file: False
+      gcodes:
+        location: 'gcodes'
+        lastbackup: False
+        file: False
+    logger:
+      console:
+        enabled: True
+        level: 'WARNING'
+      file:
+        enabled: True
+        level: 'INFO'
+        max: 7
+        logdir: 'logs' # this will be a directory inside kbmlocal
+    remote:
+      enabled: False
+      handler: 'rclone' # Sorry, nothing else is supported yet
+      rclone:  'gdrive'
+      path: '.kbmremote'
