@@ -1,11 +1,11 @@
-# SPDX-FileCopyrightText: 2023-present Laurel Ash <laurel@proton.me>
+# SPDX-FileCopyrightText: 2023-present Laurel Ash <laurel.ash@proton.me>
 #
+
 # SPDX-License-Identifier: GPL-3.0-or-later
-#!/usr/bin/env python3
 import logging
-from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 import os
 import sys
+from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
 import yaml
 
@@ -15,29 +15,76 @@ logdir = os.path.join(kbmlocal, "logs")
 backupdir = os.path.join(kbmlocal, "backups")
 log = logging.getLogger(__name__)
 logfile = os.path.join(logdir, "kbm.log")
-kbmdefault_yaml = os.path.join('.kbmdefault.yaml')
-kbm_yaml = os.path.join("kbm.yaml")
+log.setLevel(logging.DEBUG)
+clog = logging.StreamHandler()
+clog.setLevel(logging.WARNING)
+log.addHandler(clog)
+flog = TRFileHandler(logfile, when="midnight", interval=1, backupCount=7)
+timestamped = logging.Formatter(fmt="%(asctime)s %(name)-8s %(levelname)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+flog.setLevel(logging.INFO)
+flog.setFormatter(timestamped)
+log.addHandler(flog)
 
-class KBMSettings:
-    def __init__(self, name):
-        log.debug("Settings object initialized.")
-        os.chdir(kbmlocal)
-        self.name = name
-        self.filename = kbmdefault_yaml
-        if os.path.exists(kbm_yaml):
-            self.filename = kbm_yaml
-        with open(self.filename) as file:
-            self.settings = yaml.safe_load(file)
+kbmdefault_yaml = os.path.join(kbmlocal, ".kbmdefault.yaml")
+kbm_yaml = os.path.join(kbmlocal, "kbm.yaml")
+if not os.path.exists(kbmdefault_yaml):
+    sys.exit()
+if not os.path.exists(kbm_yaml):
+    os.copy(kbmdefault_yaml, kbm_yaml)
 
+with open(kbm_yaml) as file:
+    try:
+        settings_file = yaml.safe_load(file)
+    except yaml.YAMLError as exc:
+        log.exception("Error while parsing YAML file:")
+        if hasattr(exc, "problem_mark"):
+            if exc.context:
+                log.exception(
+                    "  parser says %s\n  %s %s\nPlease correct data and retry.",
+                    str(exc.problem_mark),
+                    str(exc.problem),
+                    str(exc.context),
+                )
+            else:
+                log.exception(
+                    "  parser says%s\n%s\n  \nPlease correct data and retry.", str(exc.problem_mark), str(exc.problem)
+                )
+
+        else:
+            log.exception("Something went wrong while parsing YAML file.")
+            sys.exit()
+    try:
+        settings_profile = settings_file["BackupManagers"]["user1"]
+    except KeyError:
+        settings_profile = settings_file["BackupManagers"]["default"]
+    del settings_file
+
+
+class SettingsParser:
+    def __init__(self, request):
+        self.requested = request
+        if self.requested == "all":
+            self.entry = settings_profile
         try:
-            self.profile = self.settings["BackupManagers"][self.name]
+            self.entry = settings_profile.get(self.requested)
         except KeyError:
-            self.profile = self.settings["BackupManagers"]["default"]
+            self.entry = None
+
+    def __enter__(self):
+        log.debug("Entering KBMSettings object.")
+        log.debug("Section '%s' requested.", self.requested)
+        return self.entry
+
+    def __exit__(self, exctype, excinst, exctb):
+        log.debug("Exiting KBMSettings object.")
+        log.debug("Execution type: %s", exctype)
+        log.debug("Execution value: %s", excinst)
+        log.debug("Traceback: %s", exctb)
 
 
 class BackupManager:
     # I'm pretty sure I only want each instance to have access to its own settings
-    def __init__(self, profile_name):
+    def __init__(self):
         pass
 
     def __enter__(self):
@@ -76,21 +123,3 @@ if not os.path.isdir(logdir):
         log.critical("Something is in the way.")
         log.critical(e)
         sys.exit()
-
-with KBMSettings("default") as s:
-    logsettings = s.profile["logger"]
-
-if logsettings["console"]["enabled"]:
-    log.setLevel(logging.DEBUG)
-    clog = logging.StreamHandler()
-    clog.setLevel(logsettings["console"].setdefault("level", "WARNING"))
-    log.addHandler(clog)
-    log.debug("Console output initiated.")
-
-if logsettings["file"]["enabled"]:
-    flog = TRFileHandler(logfile, when="midnight", interval=1, backupCount=logsettings["file"].setdefault("max", 7))
-    timestamped = logging.Formatter(
-        fmt="%(asctime)s %(name)-8s %(levelname)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    flog.setLevel(logsettings["file"].setdefault("level", "INFO"))
-    flog.setFormatter(timestamped)
