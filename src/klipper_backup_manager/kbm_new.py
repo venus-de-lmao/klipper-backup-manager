@@ -3,8 +3,10 @@ import os
 import sys
 import logging
 import logging.config
+import click
 from logging.handlers import TimedRotatingFileHandler as fh
 from datetime import datetime
+
 
 bold = '\x1b[1m'
 unbold = '\x1b[22m'
@@ -30,22 +32,34 @@ kbmlocal = kbm_profile.setdefault('kbmlocal', '~/.kbmlocal')
 homedir = kbm_profile.setdefault('homedir', '~')
 backupdir = kbm_profile.setdefault('backupdir', 'backups')
 logdir = kbm_profile['logger']['file'].setdefault('logdir', 'logs')
-logfile = os.path.join(kbmlocal, logdir, 'kbm.log')
 kbmlocal = os.path.expanduser(kbmlocal)
 homedir = os.path.expanduser(homedir)
+logdir = os.path.join(kbmlocal, logdir)
+backupdir = os.path.join(kbmlocal, backupdir)
+kbm_profile['logger']['file']['logdir'] = logdir
+kbm_profile['backupdir'] = backupdir
+kbm_profile['homedir'] = homedir
+kbm_profile['kbmlocal'] = kbmlocal
+kbm_settings['BackupManagers']['default'] = kbm_profile
+print(kbmlocal, logdir, backupdir)
+print(kbm_profile)
+print(kbm_settings)
+logfile = os.path.join(logdir, 'kbm.log')
 log = logging.getLogger(__name__)
 if kbm_profile['logger']['console']['enabled']:
     clog = logging.StreamHandler()
+    clog.setLevel(kbm_profile['logger']['console'].setdefault('level', 'WARNING'))
     log.addHandler(clog)
 if kbm_profile['logger']['file']['enabled']:
+    print(logfile)
     flog = fh(logfile,
               when='midnight',
               interval=1,
-              backupCount=kbm_profile['logger']['file'].setdefault('max', 7),
-              delay=True)
-    flog.setLevel(kbm_profile
-    timefmt = '%Y-%m-%d %H:%M:%S'
-    flog.setFormatter(fmt='%(asctime)s - %(levelname)-8s - %(name)-12s %(message)s', datefmt=timefmt)
+              backupCount=kbm_profile['logger']['file'].setdefault('max', 7))
+    timestamped = logging.Formatter(fmt='%(asctime)s - %(levelname)-8s - %(name)-12s %(message)s',\
+            datefmt='%Y-%m-%d %H:%M:%S')
+    flog.setLevel(kbm_profile['logger']['file'].setdefault('level', 'INFO'))
+    flog.setFormatter(timestamped)
     log.addHandler(flog)
 
 
@@ -102,4 +116,23 @@ class Unarchiver(BackupManager):
 
 
 if __name__ == '__main__':
-    pass
+    if not os.path.isdir(backupdir):
+        try:
+            os.makedirs(backupdir)
+        except FileExistsError as e:
+            log.critical('Something is in the way.')
+            log.critical('e')
+            sys.exit()
+    if not os.path.isdir(logdir):
+        try:
+            os.makedirs(logdir)
+        except FileExistsError as e:
+            log.critical('Something is in the way.')
+            log.critical(e)
+            sys.exit()
+
+    log.debug('Debug level message.')
+    log.info('Info level message.')
+    log.warning('Warning level message.')
+    log.error('Error level message.')
+    log.critical('Critical level message.')

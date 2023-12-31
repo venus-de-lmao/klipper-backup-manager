@@ -11,7 +11,7 @@ requires-python = ">=3.8"
 license = "GPL-3.0-or-later"
 keywords = []
 authors = [
-  { name = "Laurel Ash", email = "laurel@proton.me" },
+  { name = "Laurel Ash", email = "laurel.ash@proton.me" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -24,7 +24,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = ['click']
 
 [project.urls]
 Documentation = "https://github.com/unknown/klipper-backup-manager#readme"
