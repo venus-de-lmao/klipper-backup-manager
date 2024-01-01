@@ -11,9 +11,8 @@ log = kbm.log.getChild(__name__)
 
 class ArchiveManager:
     # I'm pretty sure I only want each instance to have access to its own settings
-    def __init__(self, arc_type, is_local=True, how_recent=0):
+    def __init__(self, arc_type, how_recent):
         self.arc_type = arc_type
-        self.is_local = is_local
         self.how_recent = how_recent
         self.name = 'ArchiveManager'
         with SettingsParser(self.arc_type) as s:
@@ -28,7 +27,8 @@ class ArchiveManager:
             raise FileNotFoundError('File does not exist or is not a tar archive.')
 
     def __enter__(self):
-        return tarfile.open(self.file_path, 'r')
+        self.file = tarfile.open(self.file_path, 'r')
+        return self.file
     
     def __exit__(self, exc_type, exc_value, exc_traceback):
         tarfile.close()
@@ -36,19 +36,23 @@ class ArchiveManager:
 
 
 class Archiver(ArcManager):
-    def __init__(self, arc_type, cmode, is_local, how_recent):
-        super().__init__(arc_type, is_local, how_recent)
+    def __init__(self, arc_type, how_recent=0, cmode='xz'):
+        super().__init__(arc_type, how_recent)
         self.name = 'Archiver'
         self.cmode = cmode
     def __enter__(self):
-        return tarfile.open(self.file_path, f'w:{self.cmode}')
+        self.file = tarfile.open(self.file_path, f'w:{self.cmode}')
+        return self.file
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.file.close()
+
 
     def __repr__(self):
-        return f"Archiver('{self.arc_type}', 'is_local={self.is_local}')"
+        return f"Archiver('{self.arc_type}', 'how_recent={self.how_recent}', 'cmode={self.cmode})"
 
 
 class Unarchiver(ArcManager):
-    def __init__(self):
-        super().__init__(archive_type, is_local)
+    def __init__(self, arc_type, cmode, is_local=1, how_recent=0):
+        super().__init__(arc_type, how_recent)
         self.name = 'Unarchiver'
         self.archive_type = archive_type
