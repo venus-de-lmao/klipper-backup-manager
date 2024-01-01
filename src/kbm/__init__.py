@@ -10,9 +10,9 @@ from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 import yaml
 
 userhome = os.path.expanduser("~")
-kbmlocal = os.path.expanduser("~/.kbmlocal")
-logdir = os.path.join(kbmlocal, "logs")
-backupdir = os.path.join(kbmlocal, "backups")
+kbmlocal = os.path.join(userhome, '.kbmlocal')
+logdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "logs")
+backupdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "backups")
 log = logging.getLogger(__name__)
 logfile = os.path.join(logdir, "kbm.log")
 log.setLevel(logging.DEBUG)
@@ -25,8 +25,8 @@ flog.setLevel(logging.INFO)
 flog.setFormatter(timestamped)
 log.addHandler(flog)
 
-kbmdefault_yaml = os.path.join(kbmlocal, ".kbmdefault.yaml")
-kbm_yaml = os.path.join(kbmlocal, "kbm.yaml")
+kbmdefault_yaml = os.path.join(os.path.expanduser("~/.kbmlocal"), ".kbmdefault.yaml")
+kbm_yaml = os.path.join(os.path.expanduser("~/.kbmlocal"), "kbm.yaml")
 if not os.path.exists(kbmdefault_yaml):
     sys.exit()
 if not os.path.exists(kbm_yaml):
