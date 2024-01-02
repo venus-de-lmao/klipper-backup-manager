@@ -3,10 +3,11 @@
 
 # SPDX-License-Identifier: GPL-3.0-or-later
 import os
-import sys
-import kbm
 import tarfile
+
+import kbm
 from kbm import SettingsParser
+
 log = kbm.log.getChild(__name__)
 
 class ArchiveManager:
@@ -16,7 +17,7 @@ class ArchiveManager:
         self.how_recent = how_recent
         self.name = 'ArchiveManager'
         with SettingsParser(self.arc_type) as s:
-            if not self.arc_type in s:
+            if self.arc_type not in s:
                 log.exception('SettingsParser reports no valid archive type of type \'%s\'', self.arc_type)
                 raise
             self.arc_cfg = s[self.arc_type]
@@ -27,7 +28,7 @@ class ArchiveManager:
     def __exit__(self, exc_type, exc_value, exc_traceback):
        return True
 
-class Archiver(ArcManager):
+class Archiver(ArchiveManager):
     def __init__(self, arc_type, how_recent=0, cmode='xz'):
 
         super().__init__(arc_type, how_recent)
@@ -50,8 +51,8 @@ class Archiver(ArcManager):
         log.debug('Exception type:: %s', exc_type)
         log.debug('Value: %s', exc_value)
         log.debug('Traceback: %s', exc_traceback)
-        
-class Unarchiver(ArcManager):
+
+class Unarchiver(ArchiveManager):
     def __init__(self, arc_type, how_recent=0):
         super().__init__(arc_type, how_recent)
         self.name = 'Unarchiver'

@@ -5,10 +5,11 @@
 import logging
 import os
 import sys
-from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
 import yaml
+
 
 def file_timestamp():
     return datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
@@ -68,16 +69,14 @@ if not os.path.isdir(backupdir):
         os.makedirs(backupdir)
     except FileExistsError:
         log.critical("Something is in the way.")
-        log.critical("e")
-        sys.exit()
+        raise
+
 if not os.path.isdir(logdir):
     try:
         os.makedirs(logdir)
     except FileExistsError as e:
         log.critical("Something is in the way.")
-        log.critical(e)
-        sys.exit()
-
+        raise
 class SettingsParser:
     def __init__(self, request, mode='r', new_file=None):
         self.mode = (lambda x: 'r' if x not in ['r', 'w'] else x)(mode)
@@ -92,24 +91,30 @@ class SettingsParser:
         if self.requested == "all":
             self.entry = settings_profile
         if self.new_file:
-            self.too_old = []
+            self.too_old = set()
             with open(kbm_yaml, 'w') as file:
                 settings_profile[self.requested]['recent'].insert(0, self.new_file)
                 if len(settings_profile[self.requested]['recent']) > 5:
-                    self.too_old = settings_profile[self.requested]['recent'][5]
+                    self.too_old.add(settings_profile[self.requested]['recent'][5])
                     settings_profile[self.requested]['recent'].pop(5)
                 yaml.safe_dump(settings_profile, file)
         try:
             self.entry = settings_profile.get(self.requested)
         except KeyError:
             self.entry = None
-        
 
+    def cleanupfiles():
+        os.chdir(backupdir)
+        if self.too_old:
+            for x in self.too_old:
+                os.remove(x)
+                log.debug(x)
 
     def __exit__(self, exctype, excinst, exctb):
         log.debug("Exiting KBMSettings object.")
         log.debug("Execution type: %s", exctype)
         log.debug("Execution value: %s", excinst)
         log.debug("Traceback: %s", exctb)
-
-
+        log.debug("Removing old backups:")
+        self.cleanupfiles()
+        return True
