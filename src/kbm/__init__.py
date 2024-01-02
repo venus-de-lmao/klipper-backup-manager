@@ -29,7 +29,6 @@ timestamped = logging.Formatter(fmt="%(asctime)s %(name)-8s %(levelname)-10s %(m
 flog.setLevel(logging.INFO)
 flog.setFormatter(timestamped)
 log.addHandler(flog)
-
 kbmdefault_yaml = os.path.join(os.path.expanduser("~/.kbmlocal"), ".kbmdefault.yaml")
 kbm_yaml = os.path.join(os.path.expanduser("~/.kbmlocal"), "kbm.yaml")
 if not os.path.exists(kbmdefault_yaml):
@@ -37,76 +36,73 @@ if not os.path.exists(kbmdefault_yaml):
 if not os.path.exists(kbm_yaml):
     os.copy(kbmdefault_yaml, kbm_yaml)
 
-with open(kbm_yaml, 'r') as file:
-    try:
-        settings_file = yaml.safe_load(file)
-    except yaml.YAMLError as exc:
-        log.exception("Error while parsing YAML file:")
-        if hasattr(exc, "problem_mark"):
-            if exc.context:
-                log.exception(
-                    "  parser says %s\n  %s %s\nPlease correct data and retry.",
-                    str(exc.problem_mark),
-                    str(exc.problem),
-                    str(exc.context),
-                )
-            else:
-                log.exception(
-                    "  parser says%s\n%s\n  \nPlease correct data and retry.", str(exc.problem_mark), str(exc.problem)
-                )
-
-        else:
-            log.exception("Something went wrong while parsing YAML file.")
-            sys.exit()
-    try:
-        settings_profile = settings_file["BackupManagers"]["user1"]
-    except KeyError:
-        settings_profile = settings_file["BackupManagers"]["default"]
-    del settings_file
-
 if not os.path.isdir(backupdir):
     try:
         os.makedirs(backupdir)
     except FileExistsError:
-        log.critical("Something is in the way.") # note to polish this after I merge back to the main branch
+        log.critical("Something is in the way.", exc_info=True) # note to polish this after I merge back to the main branch
         raise
 
 if not os.path.isdir(logdir):
     try:
         os.makedirs(logdir)
     except FileExistsError as e:
-        log.critical("Something is in the way.")
+        log.critical("Something is in the way.", exc_info=True)
         raise
 class SettingsParser:
-    def __init__(self, request, mode='r', new_file=None):
+    def load_settings_file(self, profile_name='default'):
+        self.profile_name = profile_name
+        with open(kbm_yaml, 'r') as file:
+            try:
+                self.settings_file = yaml.safe_load(file)
+            except yaml.YAMLError as exc:
+                log.exception("Error while parsing YAML file:", exc_info=True)
+                if hasattr(exc, "problem_mark"):
+                    if exc.context:
+                        log.exception(
+                            "  parser says %s\n  %s %s\nPlease correct data and retry.",
+                            str(exc.problem_mark),
+                            str(exc.problem),
+                            str(exc.context))
+                    else:
+                        log.exception(
+                            "  parser says%s\n%s\n  \nPlease correct data and retry.",
+                            str(exc.problem_mark), str(exc.problem))
+                else:
+                    log.exception("Something went wrong while parsing YAML file.", exc_info=True)
+                    raise
+            if self.profile_name in self.settings_file:
+                return self.settings_file[self.profile_name]
+            return self.settings_file['default']
+
+    def __init__(self, profile, mode='r', new_file=None):
+        self.profile = self.load_settings_file(profile)
         self.mode = (lambda x: 'r' if x not in ['r', 'w'] else x)(mode)
         self.new_file = new_file
-        self.requested = request
+
+    def push_entry(self, section, key, value):
+        if section in self.profile and key in self.profile[section]:
+            self.profile[section][key] = value
+            self.keyupdate = None
+            return True
+        return None
+
+    def pull_entry(self, requested):
+        if requested in self.profile:
+            return self.profile[requested]
+        return None
+
+    def update_yaml(self):
+        with open(kbm_yaml, 'w') as file:
+            self.settings_file[self.profile_name] = self.profile
+            yaml.safe_dump(self.settings_file, file)
 
     def __enter__(self):
-        log.debug("Entering KBMSettings object.")
-        log.debug("Section '%s' requested with mode %s", self.requested, (lambda m: 'read' if m == 'r' else 'write')(self.mode))
-        (lambda x: log.debug("Updating section '%s' with most recent file %s", self.requested, x) if x else None)(self.new_file)
-        if self.requested == "all":
-            self.entry = settings_profile
-        if self.new_file:
-            self.too_old = set()
-            with open(kbm_yaml, 'w') as file:
-                settings_profile[self.requested]['recent'].insert(0, self.new_file)
-                if len(settings_profile[self.requested]['recent']) > 5:
-                    self.too_old.add(settings_profile[self.requested]['recent'][5])
-                    settings_profile[self.requested]['recent'].pop(5)
-                yaml.safe_dump(settings_profile, file)
-        try:
-            self.entry = settings_profile.get(self.requested)
-        except KeyError:
-            self.entry = None
+        return self
 
     def __exit__(self, exctype, excinst, exctb):
-        log.debug("Exiting KBMSettings object.")
-        log.debug("Execution type: %s", exctype)
-        log.debug("Execution value: %s", excinst)
-        log.debug("Traceback: %s", exctb)
+        log.debug("Exiting settings object.")
         log.debug("Removing old backups:")
-        self.cleanupfiles()
-        return True
+            # put this in, eventually
+
+pdata = SettingsParser('default').pull_entry('printer')['printer_data']
