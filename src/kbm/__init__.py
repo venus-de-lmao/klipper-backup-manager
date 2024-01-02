@@ -6,8 +6,12 @@ import logging
 import os
 import sys
 from logging.handlers import TimedRotatingFileHandler as TRFileHandler
+from datetime import datetime
 
 import yaml
+
+def file_timestamp():
+    return datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
 
 userhome = os.path.expanduser("~")
 kbmlocal = os.path.join(userhome, '.kbmlocal')
@@ -32,7 +36,7 @@ if not os.path.exists(kbmdefault_yaml):
 if not os.path.exists(kbm_yaml):
     os.copy(kbmdefault_yaml, kbm_yaml)
 
-with open(kbm_yaml) as file:
+with open(kbm_yaml, 'r') as file:
     try:
         settings_file = yaml.safe_load(file)
     except yaml.YAMLError as exc:
@@ -75,19 +79,32 @@ if not os.path.isdir(logdir):
         sys.exit()
 
 class SettingsParser:
-    def __init__(self, request):
+    def __init__(self, request, mode='r', new_file=None):
+        self.mode = (lambda x: 'r' if x not in ['r', 'w'] else x)(mode)
+        self.new_file = new_file
         self.requested = request
+
+
+    def __enter__(self):
+        log.debug("Entering KBMSettings object.")
+        log.debug("Section '%s' requested with mode %s", self.requested, (lambda m: 'read' if m == 'r' else 'write')(self.mode))
+        (lambda x: log.debug("Updating section '%s' with most recent file %s", self.requested, x) if x else None)(self.new_file)
         if self.requested == "all":
             self.entry = settings_profile
+        if self.new_file:
+            self.too_old = []
+            with open(kbm_yaml, 'w') as file:
+                settings_profile[self.requested]['recent'].insert(0, self.new_file)
+                if len(settings_profile[self.requested]['recent']) > 5:
+                    self.too_old = settings_profile[self.requested]['recent'][5]
+                    settings_profile[self.requested]['recent'].pop(5)
+                yaml.safe_dump(settings_profile, file)
         try:
             self.entry = settings_profile.get(self.requested)
         except KeyError:
             self.entry = None
+        
 
-    def __enter__(self):
-        log.debug("Entering KBMSettings object.")
-        log.debug("Section '%s' requested.", self.requested)
-        return self.entry
 
     def __exit__(self, exctype, excinst, exctb):
         log.debug("Exiting KBMSettings object.")
