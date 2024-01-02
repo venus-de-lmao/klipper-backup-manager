@@ -68,7 +68,7 @@ if not os.path.isdir(backupdir):
     try:
         os.makedirs(backupdir)
     except FileExistsError:
-        log.critical("Something is in the way.")
+        log.critical("Something is in the way.") # note to polish this after I merge back to the main branch
         raise
 
 if not os.path.isdir(logdir):
@@ -82,7 +82,6 @@ class SettingsParser:
         self.mode = (lambda x: 'r' if x not in ['r', 'w'] else x)(mode)
         self.new_file = new_file
         self.requested = request
-
 
     def __enter__(self):
         log.debug("Entering KBMSettings object.")
@@ -102,13 +101,6 @@ class SettingsParser:
             self.entry = settings_profile.get(self.requested)
         except KeyError:
             self.entry = None
-
-    def cleanupfiles():
-        os.chdir(backupdir)
-        if self.too_old:
-            for x in self.too_old:
-                os.remove(x)
-                log.debug(x)
 
     def __exit__(self, exctype, excinst, exctb):
         log.debug("Exiting KBMSettings object.")
