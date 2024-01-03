@@ -6,7 +6,10 @@ import sys
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
-import yaml
+import SettingsParser
+
+settings = SettingsParser.SettingsFile('default')
+settings.load()
 
 def file_timestamp():
     return datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")

@@ -2,14 +2,9 @@
 #
 
 # SPDX-License-Identifier: GPL-3.0-or-later
-import click, cloup
-import kbm
-import click
-from cloup import (
-    HelpFormatter, HelpTheme, Style, command, group, option, option_group, argument
-    )
-from cloup.constraints import mutually_exclusive, RequireAtLeast
-from kbm import SettingsParser
+import KBM
+from cloup import HelpFormatter, HelpTheme, Style
+
 log = kbm.log.getChild(__name__)
 
 formatter_settings=HelpFormatter.settings(
