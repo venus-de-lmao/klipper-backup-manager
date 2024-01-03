@@ -8,7 +8,6 @@ from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
 import yaml
 
-
 def file_timestamp():
     return datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
 
@@ -47,60 +46,3 @@ if not os.path.isdir(logdir):
     except FileExistsError:
         log.critical("Something is in the way.", exc_info=True)
         raise
-class SettingsParser:
-    def load_settings_file(self, profile_name='default'):
-        self.profile_name = profile_name
-        with open(kbm_yaml) as file:
-            try:
-                self.settings_file = yaml.safe_load(file)
-            except yaml.YAMLError as exc:
-                log.exception("Error while parsing YAML file:", exc_info=True)
-                if hasattr(exc, "problem_mark"):
-                    if exc.context:
-                        log.exception(
-                            "  parser says %s\n  %s %s\nPlease correct data and retry.",
-                            str(exc.problem_mark),
-                            str(exc.problem),
-                            str(exc.context))
-                    else:
-                        log.exception(
-                            "  parser says%s\n%s\n  \nPlease correct data and retry.",
-                            str(exc.problem_mark), str(exc.problem))
-                else:
-                    log.exception("Something went wrong while parsing YAML file.", exc_info=True)
-                    raise
-            if self.profile_name in self.settings_file:
-                return self.settings_file[self.profile_name]
-            return self.settings_file['default']
-
-    def __init__(self, profile, mode='r', new_file=None):
-        self.profile = self.load_settings_file(profile)
-        self.mode = (lambda x: 'r' if x not in ['r', 'w'] else x)(mode)
-        self.new_file = new_file
-
-    def push_entry(self, section, key, value):
-        if section in self.profile and key in self.profile[section]:
-            self.profile[section][key] = value
-            self.keyupdate = None
-            return True
-        return None
-
-    def pull_entry(self, requested):
-        if requested in self.profile:
-            return self.profile[requested]
-        return None
-
-    def update_yaml(self):
-        with open(kbm_yaml, 'w') as file:
-            self.settings_file[self.profile_name] = self.profile
-            yaml.safe_dump(self.settings_file, file)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exctype, excinst, exctb):
-        log.debug("Exiting settings object.")
-        log.debug("Removing old backups:")
-            # put this in, eventually
-
-pdata = SettingsParser('default').pull_entry('printer')['printer_data']
