@@ -40,7 +40,7 @@ if not os.path.isdir(backupdir):
     try:
         os.makedirs(backupdir)
     except FileExistsError:
-        log.critical("Something is in the way.", exc_info=True) # note to polish this after I merge back to the main branch
+        log.critical("Something is in the way.", exc_info=True)
         raise
 
 if not os.path.isdir(logdir):
