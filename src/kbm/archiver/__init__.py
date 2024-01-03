@@ -33,4 +33,7 @@ class Archive:
                 
     def extract_file(self, archive_file):
         os.chdir(self.wdir)
-        
+        with tarfile.open(archive_file) as file:
+            for x in (progressbar(range(len(m)), redirect_stdout=True)):
+                x.extract()
+                log.info('Extracted %s', x.name)
