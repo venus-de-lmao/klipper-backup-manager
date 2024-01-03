@@ -8,14 +8,16 @@ from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
 import SettingsParser
 
-settings = SettingsParser.SettingsFile('default')
+settings = SettingsParser.SettingsFile("default")
 settings.load()
+
 
 def file_timestamp():
     return datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
 
+
 userhome = os.path.expanduser("~")
-kbmlocal = os.path.join(userhome, '.kbmlocal')
+kbmlocal = os.path.join(userhome, ".kbmlocal")
 logdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "logs")
 backupdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "backups")
 log = logging.getLogger(__name__)
