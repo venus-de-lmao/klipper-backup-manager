@@ -25,4 +25,4 @@ class SettingsFile:
         self.yamlfile[self.name] = self.profile
         with open(kbm_yaml, 'w') as file:
             log.debug('Writing updated settings to file.')
-            yaml.safe_dump(self.profile, kbm_yaml)
+            yaml.safe_dump(self.profile, file)
