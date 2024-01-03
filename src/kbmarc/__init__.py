@@ -14,10 +14,12 @@ pdata = os.path.expanduser(kbm.pdata)
 phome = Path(pdata).parent.absolute()
 class ArchiveManager:
     # I'm pretty sure I only want each instance to have access to its own settings
-    def __init__(self, arc_type, how_recent):
+    def __init__(self, profile, arc_type, how_recent):
         self.arc_type = arc_type
         self.how_recent = how_recent
         self.name = 'ArchiveManager'
+        self.profile_name = profile
+        
         with kbm.SettingsParser(self.arc_type) as s:
            self.arc_cfg = s.pull_entry(self.arc_type)
         if not self.arc_cfg:
@@ -40,6 +42,7 @@ class Archiver(ArchiveManager):
         self.stampedfilename = f'{self.arc_type}_{kbm.file_timestamp()}.tar.{self.cmode}'
         self.file_path = os.path.join(kbm.backupdir, self.stampedfilename)
         self.file = tarfile.open(self.file_path, f'w:{self.cmode}')
+
         return self.file
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if type(exc_type) == NoneType:
@@ -57,7 +60,7 @@ class Unarchiver(ArchiveManager):
         try:
             self.file_path = os.path.join(kbm.backupdir, kbm.SettingsParser('default').pull_entry(self.arc_type)['recent'][self.how_recent])
         except:
-            log.exception('Well, that didn\'t work.', exc_info=True)
+            log.exception('Well, that didn\'t work.')
         self.file = tarfile.open(self.file_path, 'r')
         return self.file
     def __exit__(self, exc_type, exc_value, exc_traceback):

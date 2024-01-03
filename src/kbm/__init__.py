@@ -44,13 +44,13 @@ if not os.path.isdir(backupdir):
 if not os.path.isdir(logdir):
     try:
         os.makedirs(logdir)
-    except FileExistsError as e:
+    except FileExistsError:
         log.critical("Something is in the way.", exc_info=True)
         raise
 class SettingsParser:
     def load_settings_file(self, profile_name='default'):
         self.profile_name = profile_name
-        with open(kbm_yaml, 'r') as file:
+        with open(kbm_yaml) as file:
             try:
                 self.settings_file = yaml.safe_load(file)
             except yaml.YAMLError as exc:
