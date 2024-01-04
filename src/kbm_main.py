@@ -5,7 +5,6 @@ import sys
 from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
 import cloup
-sys.path.append(os.path.abspath(os.getcwd()))
 import kbm
 import kbm.archiver
 import kbm.settings
@@ -50,7 +49,7 @@ def cli(debug, profile='default'):
 @cloup.argument('tag')
 def backup(tag):
     log.debug('Beginning backup.')
-    if tag not in [x for x in settings.profile]:
+    if tag not in list(settings.profile):
         log.warning("Invalid archive type '%s'", tag)
         sys.exit()
     log.info("Archive type '%s'", tag)
@@ -60,7 +59,7 @@ def backup(tag):
 
 @cli.command()
 def restore(tag):
-    log.warning('Restore command run.')
+    log.warning("Restore command run for '%s' but not fully implemented.", tag)
 
 if __name__ == '__main__':
     cli()

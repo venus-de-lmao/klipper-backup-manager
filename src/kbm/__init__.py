@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import logging
 import os
-import sys
 import shutil
 from datetime import datetime
 
@@ -19,7 +18,7 @@ kbm_yaml = os.path.join(os.path.expanduser("~/.kbmlocal"), "kbm.yaml")
 log = logging.getLogger('kbm.'+__name__)
 if not os.path.exists(kbmdefault_yaml):
     log.critical('Failed to find %s', kbmdefault_yaml)
-    raise FileNotFoundError('Default config is missing!')
+    raise FileNotFoundError
 if not os.path.exists(kbm_yaml):
     shutil.copy(kbmdefault_yaml, kbmlocal)
 
@@ -37,5 +36,3 @@ if not os.path.isdir(logdir):
         log.critical("Something is in the way.", exc_info=True)
         raise
 
-def file_timestamp():
-    return datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")

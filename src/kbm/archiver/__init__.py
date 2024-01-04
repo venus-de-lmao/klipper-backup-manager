@@ -1,10 +1,13 @@
-import os, sys
-import pathlib
-import tarfile
-import kbm
 import logging
-from time import sleep
+import os
+import pathlib
+import sys
+import tarfile
+
 from progressbar import progressbar
+
+import kbm
+
 exc_exts = [".bak", ".bkp"]
 class Archive:
     def __init__(self, tag, pdata='~/printer_data'):
@@ -29,7 +32,7 @@ class Archive:
             tgtl = len(tl)
             for x in progressbar(range(tgtl), redirect_stdout=True):
                 file.add(tl[x])
-                print(tl[x])
+                # print(tl[x])
 
     def extract_file(self, archive_file):
         os.chdir(self.wdir)
