@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 from datetime import datetime
-from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
 
 def file_timestamp():

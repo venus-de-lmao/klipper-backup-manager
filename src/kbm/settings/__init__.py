@@ -1,7 +1,10 @@
-import yaml
-import os
-import kbm
 import logging
+
+import yaml
+
+import kbm
+
+
 class SettingsFile:
     def __init__(self, name):
         self.name = name

@@ -1,21 +1,25 @@
-import os
+import os, sys
 import pathlib
 import tarfile
+import kbm
+import logging
 from progressbar import progressbar
-
 exc_exts = [".bak", ".bkp"]
 class Archive:
-    def __init__(self, tag):
+    def __init__(self, tag, pdata='~/printer_data'):
         self.date = kbm.file_timestamp()  # generate timestamp when the object is instantiated
         self.tag = tag
-        self.wdir = pathlib.Path(os.path.expanduser(kbm.settings.pull_entry("printer_data"))).parent.resolve()
-        self.log = logging.getLogger('kbm.Archive.'+self.tag) 
+        self.wdir = pathlib.Path(os.path.expanduser(pdata)).parent.resolve()
+        self.log = logging.getLogger('kbm.Archive')
         os.chdir(self.wdir)
 
     def create_file(self, cmode="xz"):
         os.chdir(self.wdir)
         self.cmode = cmode if cmode in ["xz", "bz2", "gz"] else "xz"
-        self.target_dir = os.join("printer_data", self.tag)
+        self.target_dir = os.path.join("printer_data", self.tag)
+        if not os.path.isdir(self.target_dir):
+            self.log.warning('Target does not exist or is not a directory. Exiting.')
+            sys.exit()
         self.filename = f"{self.tag}_backup_{self.date}.tar.{self.cmode}"
         self.new_archive = os.path.join(kbm.backupdir, self.filename)
         with tarfile.open(self.new_archive, f"w:{self.cmode}") as file:
