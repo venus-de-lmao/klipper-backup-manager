@@ -3,6 +3,7 @@ import pathlib
 import tarfile
 import kbm
 import logging
+from time import sleep
 from progressbar import progressbar
 exc_exts = [".bak", ".bkp"]
 class Archive:
@@ -25,10 +26,10 @@ class Archive:
         with tarfile.open(self.new_archive, f"w:{self.cmode}") as file:
             targets = [p for p in pathlib.Path(self.target_dir).rglob("*") if p.suffix not in exc_exts]
             tl = list(targets)
-            for x in progressbar(range(len(tl)), redirect_stdout=True):
-                fname_str = str(tl[x])
-                file.add(fname_str)
-                self.log.info('Archived %s', fname_str)
+            tgtl = len(tl)
+            for x in progressbar(range(tgtl), redirect_stdout=True):
+                file.add(tl[x])
+                print(tl[x])
 
     def extract_file(self, archive_file):
         os.chdir(self.wdir)
@@ -36,4 +37,3 @@ class Archive:
             m = file.list()
             for x in (progressbar(range(len(m)), redirect_stdout=True)):
                 x.extract()
-                self.log.info('Extracted %s', x.name)
