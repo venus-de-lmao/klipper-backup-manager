@@ -5,6 +5,7 @@ import sys
 from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
 import cloup
+sys.path.append(os.path.abspath(os.getcwd()))
 import kbm
 import kbm.archiver
 import kbm.settings
