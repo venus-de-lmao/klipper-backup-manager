@@ -58,6 +58,7 @@ def backup(tag):
     arc_file.create_file(tag)
 
 @cli.command()
+@cloup.argument('tag')
 def restore(tag):
     log.warning("Restore command run for '%s' but not fully implemented.", tag)
 
