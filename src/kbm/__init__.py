@@ -3,6 +3,7 @@
 import logging
 import os
 import sys
+import shutil
 from datetime import datetime
 
 
@@ -13,14 +14,14 @@ userhome = os.path.expanduser("~")
 kbmlocal = os.path.join(userhome, ".kbmlocal")
 logdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "logs")
 backupdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "backups")
-
-kbmdefault_yaml = os.path.join(os.path.expanduser("~/.kbmlocal"), ".kbmdefault.yaml")
+kbmdefault_yaml = os.path.join(os.getcwd(), ".kbmdefault.yaml")
 kbm_yaml = os.path.join(os.path.expanduser("~/.kbmlocal"), "kbm.yaml")
 log = logging.getLogger('kbm.'+__name__)
 if not os.path.exists(kbmdefault_yaml):
-    sys.exit()
+    log.critical('Failed to find %s', kbmdefault_yaml)
+    raise FileNotFoundError('Default config is missing!')
 if not os.path.exists(kbm_yaml):
-    os.copy(kbmdefault_yaml, kbm_yaml)
+    shutil.copy(kbmdefault_yaml, kbmlocal)
 
 if not os.path.isdir(backupdir):
     try:

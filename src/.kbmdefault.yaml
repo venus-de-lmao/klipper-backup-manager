@@ -1,0 +1,21 @@
+default:
+  printer:
+    name: 'Ender 3'
+    printer_data: '~/printer_data'
+  config:
+    location: 'config'
+    recent: []
+    maxbackups: 5
+  database:
+    location: 'database'
+    recent: []
+    maxbackups: 5
+  gcodes:
+    location: 'gcodes'
+    recent: []
+    maxbackups: 5
+  remote:
+    enabled: False
+    handler: 'rclone' # Sorry, nothing else is supported yet
+    rclone:  'gdrive'
+    path: '.kbmremote'
