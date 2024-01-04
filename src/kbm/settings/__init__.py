@@ -1,15 +1,15 @@
 import yaml
-
+import os
 import kbm
-
-log = kbm.log.getChild(__name__)
+import logging
 class SettingsFile:
     def __init__(self, name):
         self.name = name
+        self.log=logging.getLogger('kbm.SettingsFile.'+self.name)
 
     def load(self):
         with open(kbm.kbm_yaml) as file:
-            log.debug("Opening settings file.")
+            self.log.debug("Opening settings file.")
             self.yamlfile = yaml.safe_load(file)
         self.profile = self.yamlfile.get(self.name)
 
@@ -29,5 +29,5 @@ class SettingsFile:
     def write(self):
         self.yamlfile[self.name] = self.profile
         with open(kbm.kbm_yaml, "w") as file:
-            log.debug("Writing updated settings to file.")
+            self.log.debug("Writing updated settings to file.")
             yaml.safe_dump(self.profile, file)
