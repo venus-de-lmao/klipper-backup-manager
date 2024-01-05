@@ -35,7 +35,7 @@ class SettingsFile:
             return None
         if len(self.profile[tag]['recent']) > self.profile[tag]['maxbackups']:
             t = self.profile[tag]['recent'][-1]
-            if os.path.isfile(t) && delete_old:
+            if os.path.isfile(t) and delete_old:
                 os.remove(t)
                 self.profile[tag]['recent'].pop(-1)
         self.profile[tag]['recent'].insert(new_value, 0)
