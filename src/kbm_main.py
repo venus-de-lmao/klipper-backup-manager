@@ -41,6 +41,8 @@ def cli(debug, profile='default'):
     settings.load()
     for h in (log.handlers):
         (h.setLevel(logging.DEBUG) if debug else None)
+        (h.setFormatter(timestamped) if debug else None)
+        # timestamp everything in debug mode
 
 
 
@@ -48,13 +50,15 @@ def cli(debug, profile='default'):
 @cli.command()
 @cloup.argument('tag')
 def backup(tag):
-    log.debug('Beginning backup.')
+    log.debug("Attempting to start backup: '%s'", tag)
     if tag not in list(settings.profile):
         log.warning("Invalid archive type '%s'", tag)
         sys.exit()
-    log.info("Archive type '%s'", tag)
+    log.debug("Valid backup type: '%s'", tag)
     pdata = settings.pull_entry('printer').get('printer_data')
+    log.debug('Initializing Archive object.')
     arc_file = kbm.archiver.Archive(tag, pdata)
+    log.debug('Creating file.')
     arc_file.create_file(tag)
 
 @cli.command()
