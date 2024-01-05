@@ -24,6 +24,8 @@ log.setLevel(logging.DEBUG)
 log.addHandler(clog)
 log.addHandler(flog)
 
+cfg = kbm.settings.SettingsFile('default')
+cfg.load()
 
 @cloup.group()
 @option(
@@ -36,13 +38,10 @@ log.addHandler(flog)
         'kbm.yaml to use. Uses default settings if not specified.'
     )
 def cli(debug, profile='default'):
-    global settings
-    settings=kbm.settings.SettingsFile(profile)
-    settings.load()
     for h in (log.handlers):
         (h.setLevel(logging.DEBUG) if debug else None)
         (h.setFormatter(timestamped) if debug else None)
-        # timestamp everything in debug mode
+       # timestamp everything in debug mode
 
 
 
@@ -51,15 +50,15 @@ def cli(debug, profile='default'):
 @cloup.argument('tag')
 def backup(tag):
     log.debug("Attempting to start backup: '%s'", tag)
-    if tag not in list(settings.profile):
+    if tag not in list(cfg.profile):
         log.warning("Invalid archive type '%s'", tag)
         sys.exit()
     log.debug("Valid backup type: '%s'", tag)
-    pdata = settings.pull_entry('printer').get('printer_data')
+    pdata = cfg.pull_entry('printer').get('printer_data')
     log.debug('Initializing Archive object.')
     arc_file = kbm.archiver.Archive(tag, pdata)
     log.debug('Creating file.')
-    arc_file.create_file(tag)
+    arc_file.create_file()
 
 @cli.command()
 @cloup.argument('tag')
