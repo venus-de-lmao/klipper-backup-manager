@@ -29,7 +29,7 @@ class SettingsFile:
         self.profile[entry_name][key] = new_value
         return True
     
-    def add_recent(self, tag, new_value, delete_old=False)
+    def add_recent(self, tag, new_value, delete_old=False):
         (self.load() if not self.profile else None)
         if tag not in self.profile:
             return None
