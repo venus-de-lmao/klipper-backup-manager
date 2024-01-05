@@ -8,7 +8,7 @@ import kbm
 class SettingsFile:
     def __init__(self, name):
         self.name = name
-        self.log=logging.getLogger('kbm.SettingsFile.'+self.name)
+        self.log=logging.getLogger(__name__+'.'+self.name)
 
     def load(self):
         with open(kbm.kbm_yaml) as file:

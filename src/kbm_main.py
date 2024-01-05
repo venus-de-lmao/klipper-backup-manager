@@ -5,7 +5,6 @@ import sys
 from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
 import cloup
-sys.path.append(os.path.abspath(os.getcwd()))
 import kbm
 import kbm.archiver
 import kbm.settings
@@ -13,7 +12,7 @@ from cloup import option
 
 logdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "logs")
 logfile = os.path.join(logdir, "kbm.log")
-log = logging.getLogger('kbm.'+__name__)
+log = logging.getLogger(__name__)
 clog = logging.StreamHandler(sys.stdout)
 clog.setLevel(logging.INFO)
 flog = TRFileHandler(logfile, when="midnight", interval=1, backupCount=7)
@@ -50,7 +49,7 @@ def cli(debug, profile='default'):
 @cloup.argument('tag')
 def backup(tag):
     log.debug('Beginning backup.')
-    if tag not in [x for x in settings.profile]:
+    if tag not in list(settings.profile):
         log.warning("Invalid archive type '%s'", tag)
         sys.exit()
     log.info("Archive type '%s'", tag)
@@ -59,8 +58,10 @@ def backup(tag):
     arc_file.create_file(tag)
 
 @cli.command()
+@cloup.argument('tag')
 def restore(tag):
-    log.warning('Restore command run.')
+    log.warning("Restore command run for '%s' but not fully implemented.", tag)
 
 if __name__ == '__main__':
+    
     cli()
