@@ -24,7 +24,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ['click', 'cloup', 'progressbar']
+dependencies = ['click', 'cloup', 'tqdm']
 
 [project.urls]
 Documentation = "https://github.com/unknown/klipper-backup-manager#readme"
@@ -58,6 +58,11 @@ cov = [
   "test-cov",
   "cov-report",
 ]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/kbm_main.py", "src/kbm/*", "src/.kbmdefault.yaml"]
+exclude = ["__pycache__", ".pytest_cache", ".git*"]
+
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
