@@ -4,7 +4,7 @@ import pathlib
 import sys
 import tarfile
 
-from klipper_backup_manager import kbm
+import kbm
 from tqdm import tqdm
 
 log = logging.getLogger('archiver')

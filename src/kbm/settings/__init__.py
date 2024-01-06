@@ -1,6 +1,6 @@
 import logging
 
-from klipper_backup_manager import kbm
+import kbm
 import yaml
 
 

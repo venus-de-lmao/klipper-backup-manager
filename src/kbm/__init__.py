@@ -4,9 +4,9 @@ import logging
 import os
 import shutil
 from datetime import datetime
-from pathlib import Path
-import sys
+
 import yaml
+
 
 def file_timestamp():
     return datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
@@ -20,7 +20,7 @@ if not os.path.isfile(kbmdefault_yaml):
     with open(kbmdefault_yaml, 'w') as file:
         yamlsettings = {
             'default':{
-                    'printer':{ 
+                    'printer':{
                     'name': 'Ender 3',
                     'printer_data': '~/printer_data'
                     },
@@ -30,19 +30,19 @@ if not os.path.isfile(kbmdefault_yaml):
                     'maxbackups': 5
                     },
                 'database':{
-                    'location': 'database', 
-                    'recent': [], 
+                    'location': 'database',
+                    'recent': [],
                     'maxbackups': 5
-                    }, 
+                    },
                 'gcodes': {
                     'location': 'gcodes',
-                    'recent': [], 
+                    'recent': [],
                     'maxbackups': 5
-                    }, 
+                    },
                 'remote': {
-                    'enabled': False, 
-                    'handler': 'rclone', 
-                    'rclone':'gdrive', 
+                    'enabled': False,
+                    'handler': 'rclone',
+                    'rclone':'gdrive',
                     'path': '.kbmremote'}}}
         yaml.safe_dump(yamlsettings, file)
 

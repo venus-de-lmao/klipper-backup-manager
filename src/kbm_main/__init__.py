@@ -1,15 +1,15 @@
-#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2023-present Laurel Ash <laurel.ash@proton.me>
+# SPDX-License-Identifier: GPL-3.0-or-later
 import logging
 import os
 import sys
 from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
 import cloup
-from klipper_backup_manager import kbm
-from klipper_backup_manager.kbm import settings as kbmsettings
-from klipper_backup_manager.kbm import archiver as kbmarchiver
+import kbm
 from cloup import option
-
+from kbm import archiver as kbmarchiver
+from kbm import settings as kbmsettings
 
 logdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "logs")
 logfile = os.path.join(logdir, "kbm.log")
@@ -25,9 +25,6 @@ log.setLevel(logging.DEBUG)
 log.addHandler(clog)
 log.addHandler(flog)
 
-cfg = kbmsettings.SettingsFile('default')
-cfg.load()
-
 @cloup.group()
 @option(
     '--debug', '-d', is_flag=True,
@@ -42,7 +39,10 @@ def cli(debug, profile='default'):
     for h in (log.handlers):
         (h.setLevel(logging.DEBUG) if debug else None)
         (h.setFormatter(timestamped) if debug else None)
-       # timestamp everything in debug mode
+    cfg = kbmsettings.SettingsFile(profile)
+    cfg.load()
+
+      # timestamp everything in debug mode
 
 @cli.command()
 @cloup.argument('tag')
@@ -68,10 +68,10 @@ def get_file_list(tag='all'):
 @cli.command()
 def restore():
     files = list(get_file_list())
-    n = -1
+    n = 0
     for f in files:
         print(f'{n}: {f!s}')
-        n += 0
+        n += 1
     while True:
         sel = input('Select a number:')
         if str(sel).lower() in ('q', 'quit', 'exit', 'cancel'):
@@ -87,5 +87,4 @@ def restore():
             kbm.archiver.extract_file(tgt)
             break
 
-if __name__ == '__main__':
-    cli()
+
