@@ -60,11 +60,13 @@ cov = [
 ]
 
 [tool.hatch.build.targets.sdist]
+sources = ['src']
 exclude = [
   "__pycache__", ".pytest_cache", ".git*", "tests"
 ]
 
 [tool.hatch.build.targets.wheel]
+sources = ['src']
 exclude = [
   "__pycache__", ".pytest_cache", ".git*"
 ]
