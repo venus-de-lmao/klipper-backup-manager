@@ -26,3 +26,5 @@ pip install klipper-backup-manager
 The interface is simple:
 `kbm-tool backup TARGET` - valid targets are 'gcodes', 'config', and 'database'.
 `kbm-tool restore` gives you a list of saved backups to restore from.
+
+Settings are controlled by the **kbm.yaml** file in ~/.kbmlocal which the app will automatically create with default settings the first time you run it. Please let me know via github if you have any issues.
