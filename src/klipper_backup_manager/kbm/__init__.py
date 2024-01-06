@@ -4,16 +4,17 @@ import logging
 import os
 import shutil
 from datetime import datetime
-
+from pathlib import Path
 
 def file_timestamp():
     return datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
 
+scripthome = Path(os.path.realpath(__file__)).parent.resolve()
 userhome = os.path.expanduser("~")
 kbmlocal = os.path.join(userhome, ".kbmlocal")
 logdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "logs")
 backupdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "backups")
-kbmdefault_yaml = os.path.join(os.getcwd(), ".kbmdefault.yaml")
+kbmdefault_yaml = os.path.join(scripthome, ".kbmdefault.yaml")
 kbm_yaml = os.path.join(os.path.expanduser("~/.kbmlocal"), "kbm.yaml")
 log = logging.getLogger(__name__)
 if not os.path.exists(kbmdefault_yaml):
