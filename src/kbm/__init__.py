@@ -15,7 +15,7 @@ logdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "logs")
 backupdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "backups")
 kbmdefault_yaml = os.path.join(os.getcwd(), ".kbmdefault.yaml")
 kbm_yaml = os.path.join(os.path.expanduser("~/.kbmlocal"), "kbm.yaml")
-log = logging.getLogger('kbm.'+__name__)
+log = logging.getLogger(__name__)
 if not os.path.exists(kbmdefault_yaml):
     log.critical('Failed to find %s', kbmdefault_yaml)
     raise FileNotFoundError
