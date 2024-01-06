@@ -1,5 +1,6 @@
-# SPDX-FileCopyrightText: 2023-present Laurel Ash <laurel.ash@proton.me>
-# SPDX-License-Identifier: GPL-3.0-or-later
+
+
+
 import logging
 import os
 import sys
@@ -39,6 +40,7 @@ def cli(debug, profile='default'):
     for h in (log.handlers):
         (h.setLevel(logging.DEBUG) if debug else None)
         (h.setFormatter(timestamped) if debug else None)
+    global cfg # I know this is discouraged but cfg needs to be accessible globally
     cfg = kbmsettings.SettingsFile(profile)
     cfg.load()
 
@@ -86,5 +88,3 @@ def restore():
             log.info("Attempting to restore file %s", tgt)
             kbm.archiver.extract_file(tgt)
             break
-
-

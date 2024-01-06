@@ -31,8 +31,7 @@ Documentation = "https://github.com/venus-de-lmao/klipper-backup-manager#readme"
 Issues = "https://github.com/venus-de-lmao/klipper-backup-manager/issues"
 Source = "https://github.com/venus-de-lmao/klipper-backup-manager"
 
-[project.scripts]
-kbm-tool = "klipper_backup_manager.klipper_backup_manager:cli"
+
 
 [tool.hatch.version]
 path = "src/klipper_backup_manager/__about__.py"
