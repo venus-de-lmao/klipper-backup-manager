@@ -9,7 +9,7 @@ description = 'A set of tools for managing, creating, and restoring backups of c
 readme = "README.md"
 requires-python = ">=3.8"
 license = "GPL-3.0-or-later"
-keywords = []
+keywords = ['klipper','3d printing','backup']
 authors = [
   { name = "Laurel Ash", email = "laurel.ash@proton.me" },
 ]
@@ -27,9 +27,12 @@ classifiers = [
 dependencies = ['click', 'cloup', 'tqdm']
 
 [project.urls]
-Documentation = "https://github.com/unknown/klipper-backup-manager#readme"
-Issues = "https://github.com/unknown/klipper-backup-manager/issues"
-Source = "https://github.com/unknown/klipper-backup-manager"
+Documentation = "https://github.com/venus-de-lmao/klipper-backup-manager#readme"
+Issues = "https://github.com/venus-de-lmao/klipper-backup-manager/issues"
+Source = "https://github.com/venus-de-lmao/klipper-backup-manager"
+
+[project.scripts]
+kbm-tool = "klipper_backup_manager.klipper_backup_manager:cli"
 
 [tool.hatch.version]
 path = "src/klipper_backup_manager/__about__.py"
@@ -60,13 +63,11 @@ cov = [
 ]
 
 [tool.hatch.build.targets.sdist]
-sources = ['src']
 exclude = [
   "__pycache__", ".pytest_cache", ".git*", "tests"
 ]
 
 [tool.hatch.build.targets.wheel]
-sources = ['src']
 exclude = [
   "__pycache__", ".pytest_cache", ".git*"
 ]

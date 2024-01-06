@@ -1,8 +1,7 @@
 import logging
 
+from klipper_backup_manager import kbm
 import yaml
-
-import kbm
 
 
 class SettingsFile:
@@ -28,18 +27,22 @@ class SettingsFile:
             return None
         self.profile[entry_name][key] = new_value
         return True
-    
-    def add_recent(self, tag, new_value, delete_old=False):
-        (self.load() if not self.profile else None)
-        if tag not in self.profile:
-            return None
-        if len(self.profile[tag]['recent']) > self.profile[tag]['maxbackups']:
-            t = self.profile[tag]['recent'][-1]
-            if os.path.isfile(t) and delete_old:
-                os.remove(t)
-                self.profile[tag]['recent'].pop(-1)
-        self.profile[tag]['recent'].insert(new_value, 0)
-        return self.profile[tag]['recent'][0]
+
+
+# Commenting this out because I haven't had the time to properly implement it,
+# and I changed the way I'm handling this part anyway.
+################################################################################
+#   def add_recent(self, tag, new_value, delete_old=False):
+#       (self.load() if not self.profile else None)
+#       if tag not in self.profile:
+#           return None
+#       if len(self.profile[tag]['recent']) > self.profile[tag]['maxbackups']:
+#           t = self.profile[tag]['recent'][-1]
+#           if os.path.isfile(t) and delete_old:
+#               os.remove(t)
+#               self.profile[tag]['recent'].pop(-1)
+#       self.profile[tag]['recent'].insert(new_value, 0)
+#       return self.profile[tag]['recent'][0]
 
     def write(self):
         self.yamlfile[self.name] = self.profile

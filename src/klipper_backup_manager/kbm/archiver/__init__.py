@@ -1,15 +1,28 @@
 import logging
 import os
 import pathlib
-import kbm
-from tqdm import tqdm
-import tarfile
-import logging
 import sys
+import tarfile
 
+from klipper_backup_manager import kbm
+from tqdm import tqdm
+
+log = logging.getLogger('archiver')
 exc_exts = [".bak", ".bkp"]
 mode_names = {'xz': 'LZMA', 'bz2': 'BZIP2', 'gz': 'GZIP'}
 wdir = os.path.expanduser('~')
+def sensible_data_size(n):
+    if not isinstance(n, int):
+        try:
+            n = int(n)
+        except ValueError:
+            log.exception("Invalid value passed to sensible_data_size(): %s is not an integer.", n)
+            return "ERROR"
+    for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
+        if n < 1024.0:
+            return "%3.2f %s" % (n, x)
+        n /= 1024.0
+
 class Archive:
     def __init__(self, tag, pdata='~/printer_data', cmode='xz'):
         self.cmode = cmode if cmode in ["xz", "bz2", "gz"] else "xz"
@@ -18,7 +31,7 @@ class Archive:
         self.wdir = pathlib.Path(os.path.expanduser(pdata)).parent.resolve()
         global wdir
         wdir = self.wdir
-        self.log = logging.getLogger('kbm.Archive')
+        self.log = logging.getLogger('archiver.Archive')
         self.log.debug('Archive object initialized.')
         os.chdir(self.wdir)
         self.target_dir = os.path.join("printer_data", self.tag)
@@ -38,10 +51,11 @@ class Archive:
                 fpsize = os.path.getsize(fp)
                 self.dir_size += fpsize
                 yield [fp, fpsize]
+        self.log.debug("Total size of files to be compressed: %s", sensible_data_size(self.dir_size))
     def create_file(self):
         os.chdir(self.wdir)
         self.log.debug("Compression mode: %s", mode_names[self.cmode])
-        # I really don't like how I've implemented this, but that's a project for another day 
+        # I really don't like how I've implemented this, but that's a project for another day
         with tarfile.open(self.new_archive, f"w:{self.cmode}") as file:
             target_files = self.size_up()
             tl = list(target_files)
@@ -57,8 +71,10 @@ def extract_file(archive_file):
         dir_size = 0
         for f in file.getmembers():
             dir_size += f.size
+        log.info('Data to be extracted: %s', sensible_data_size(dir_size))
         pbar = tqdm(total=dir_size, unit='B', unit_scale=True, unit_divisor=1024)
         for m in file.getmembers():
             pbar.write(m.name)
             file.extract(m)
             pbar.update(m.size)
+        log.info('%s restored successfully.', file.name)

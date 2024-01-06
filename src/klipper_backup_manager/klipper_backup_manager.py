@@ -3,12 +3,13 @@ import logging
 import os
 import sys
 from logging.handlers import TimedRotatingFileHandler as TRFileHandler
-import click
+
 import cloup
-import kbm
-import kbm.archiver
-import kbm.settings
+from klipper_backup_manager import kbm
+from klipper_backup_manager.kbm import settings as kbmsettings
+from klipper_backup_manager.kbm import archiver as kbmarchiver
 from cloup import option
+
 
 logdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "logs")
 logfile = os.path.join(logdir, "kbm.log")
@@ -24,7 +25,7 @@ log.setLevel(logging.DEBUG)
 log.addHandler(clog)
 log.addHandler(flog)
 
-cfg = kbm.settings.SettingsFile('default')
+cfg = kbmsettings.SettingsFile('default')
 cfg.load()
 
 @cloup.group()
@@ -43,9 +44,6 @@ def cli(debug, profile='default'):
         (h.setFormatter(timestamped) if debug else None)
        # timestamp everything in debug mode
 
-
-
-
 @cli.command()
 @cloup.argument('tag')
 def backup(tag):
@@ -56,12 +54,12 @@ def backup(tag):
     log.debug("Validated backup task: '%s'", tag)
     pdata = cfg.pull_entry('printer').get('printer_data')
     log.debug('Initializing Archive object.')
-    arc_file = kbm.archiver.Archive(tag, pdata)
-    log.debug('Creating file.')
+    arc_file = kbmarchiver.Archive(tag, pdata)
+    log.info('Creating file.')
     arc_file.create_file()
 
 def get_file_list(tag='all'):
-    tags = ([t for t in list(cfg.profile) if 'maxbackups' in cfg.profile[t]]) if tag == 'all' else [tag]
+    tags = ([t for t in list(cfg.profile) if 'maxbackups' in cfg.profile[t]]) if tag == 'all' else [tag]kbm
     tag_files = [f for f in os.listdir(kbm.backupdir) if os.path.isfile(os.path.join(kbm.backupdir, f))]
     for tf in tag_files:
         if tf.startswith(tuple(tags)):
@@ -70,18 +68,24 @@ def get_file_list(tag='all'):
 @cli.command()
 def restore():
     files = list(get_file_list())
-    n = 0
+    n = -1
     for f in files:
-        log.info('%s: %s', n, str(f))
-        n += 1
+        print(f'{n}: {f!s}')
+        n += 0
     while True:
-        sel = int(input('Select a number:'))
-        if 0 <= sel <= n:
+        sel = input('Select a number:')
+        if str(sel).lower() in ('q', 'quit', 'exit', 'cancel'):
+            break
+        try:
+            sel = int(sel)
+        except ValueError:
+            print("Not an integer.")
+            break
+        if -1 <= sel <= n:
             tgt = os.path.abspath(os.path.join(kbm.backupdir, files[sel]))
-            log.debug("Attempting to restore file %s", tgt)
+            log.info("Attempting to restore file %s", tgt)
             kbm.archiver.extract_file(tgt)
             break
-
 
 if __name__ == '__main__':
     cli()
