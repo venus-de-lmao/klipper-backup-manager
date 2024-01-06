@@ -8,12 +8,15 @@ from time import sleep
 
 exc_exts = [".bak", ".bkp"]
 mode_names = {'xz': 'LZMA', 'bz2': 'BZIP2', 'gz': 'GZIP'}
+wdir = os.path.expanduser('~')
 class Archive:
     def __init__(self, tag, pdata='~/printer_data', cmode='xz'):
         self.cmode = cmode if cmode in ["xz", "bz2", "gz"] else "xz"
         self.date = kbm.file_timestamp()  # generate timestamp when the object is instantiated
         self.tag = tag
         self.wdir = pathlib.Path(os.path.expanduser(pdata)).parent.resolve()
+        global wdir
+        wdir = self.wdir
         self.log = logging.getLogger('kbm.Archive')
         self.log.debug('Archive object initialized.')
         os.chdir(self.wdir)
@@ -47,15 +50,14 @@ class Archive:
                 file.add(str(x[0]))
                 bar.update(x[1])
 
-
-    def extract_file(self, archive_file):
-        os.chdir(self.wdir)
-        with tarfile.open(archive_file) as file:
-            self.dir_size = 0
-            for f in file.members():
-                self.dir_size += f.size
-            pbar = tqdm(total=self.dir_size, unit='B', unit_scale=True, unit_divisor=1024)
-            for m in file.members():
-                m.extract()
-                pbar.write(m.name)
-                pbar.update(m.size)
+def extract_file(archive_file):
+    os.chdir(wdir)
+    with tarfile.open(archive_file) as file:
+        dir_size = 0
+        for f in file.getmembers():
+            dir_size += f.size
+        pbar = tqdm(total=dir_size, unit='B', unit_scale=True, unit_divisor=1024)
+        for m in file.getmembers():
+            pbar.write(m.name)
+            file.extract(m)
+            pbar.update(m.size)
