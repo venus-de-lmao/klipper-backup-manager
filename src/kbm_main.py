@@ -9,7 +9,6 @@ import kbm
 import kbm.archiver
 import kbm.settings
 from cloup import option
-import re
 
 logdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "logs")
 logfile = os.path.join(logdir, "kbm.log")
