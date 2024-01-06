@@ -11,12 +11,18 @@
 - [License](#license)
 
 ## Installation
-Head on over to releases and download one of the binaries under 'assets', use pip to install that. Will update this space when I get it up on PyPI.
+It's now up on PyPI!
 
 ```console
-pip install klipper_backup_manager-0.13.1b0-py3-none-any.whl 
+pip install klipper-backup-manager 
 ```
 
 ## License
 
 `klipper-backup-manager` is distributed under the terms of the [GPL-3.0-or-later](https://spdx.org/licenses/GPL-3.0-or-later.html) license.
+
+## How to Use
+
+The interface is simple:
+`kbm-tool backup TARGET` - valid targets are 'gcodes', 'config', and 'database'.
+`kbm-tool restore` gives you a list of saved backups to restore from.

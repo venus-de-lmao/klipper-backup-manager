@@ -59,7 +59,7 @@ def backup(tag):
     arc_file.create_file()
 
 def get_file_list(tag='all'):
-    tags = ([t for t in list(cfg.profile) if 'maxbackups' in cfg.profile[t]]) if tag == 'all' else [tag]kbm
+    tags = ([t for t in list(cfg.profile) if 'maxbackups' in cfg.profile[t]]) if tag == 'all' else [tag]
     tag_files = [f for f in os.listdir(kbm.backupdir) if os.path.isfile(os.path.join(kbm.backupdir, f))]
     for tf in tag_files:
         if tf.startswith(tuple(tags)):

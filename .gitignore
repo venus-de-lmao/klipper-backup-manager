@@ -2,3 +2,5 @@
 *__pycache__*
 klipper-backup-manager.code-workspace
 dist
+
+from klipper_backup_manager import kbm.archiver
