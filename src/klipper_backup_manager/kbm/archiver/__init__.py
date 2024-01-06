@@ -5,7 +5,7 @@ import kbm
 from tqdm import tqdm
 import tarfile
 import logging
-from time import sleep
+import sys
 
 exc_exts = [".bak", ".bkp"]
 mode_names = {'xz': 'LZMA', 'bz2': 'BZIP2', 'gz': 'GZIP'}
