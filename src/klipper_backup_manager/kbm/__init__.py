@@ -44,7 +44,7 @@ if not os.path.isfile(kbmdefault_yaml):
                     'handler': 'rclone', 
                     'rclone':'gdrive', 
                     'path': '.kbmremote'}}}
-    yaml.safe_dump(yamlsettings, file)
+        yaml.safe_dump(yamlsettings, file)
 
 kbm_yaml = os.path.join(os.path.expanduser("~/.kbmlocal"), "kbm.yaml")
 log = logging.getLogger(__name__)
