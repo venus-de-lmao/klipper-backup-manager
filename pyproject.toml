@@ -60,13 +60,8 @@ cov = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = [
-  "src/kbm_main.py",
-  "src/kbm/*",
-  "src/.kbmdefault.yaml"
-]
 exclude = [
-  "__pycache__", ".pytest_cache", ".git*"
+  "__pycache__", ".pytest_cache", ".git*", "tests"
 ]
 
 [tool.hatch.build.targets.wheel]
