@@ -60,9 +60,19 @@ cov = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/kbm_main.py", "src/kbm/*", "src/.kbmdefault.yaml"]
-exclude = ["__pycache__", ".pytest_cache", ".git*"]
+include = [
+  "src/kbm_main.py",
+  "src/kbm/*",
+  "src/.kbmdefault.yaml"
+]
+exclude = [
+  "__pycache__", ".pytest_cache", ".git*"
+]
 
+[tool.hatch.build.targets.wheel]
+exclude = [
+  "__pycache__", ".pytest_cache", ".git*"
+]
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
