@@ -5,6 +5,7 @@ import yaml
 from pathlib import Path as p
 import click, cloup
 from cloup import option
+from datetime import datetime as d
 
 from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
@@ -37,7 +38,6 @@ class Settings:
                 }
             }
         }
-
     def __init__(self, profile):
         if not kbmyaml.exists(): # dump the default profile into a file
             self.profile = self.default_settings()['default']
@@ -55,7 +55,6 @@ class Settings:
         return self.profile.get(entry_name)
 
 
-
 @cloup.group()
 @option(
     '--debug', '-d', is_flag=True,
@@ -67,10 +66,10 @@ class Settings:
         'kbm.yaml to use. Uses default settings if not specified.'
     )
 def cli(debug, profile='default'):
-    # Once the cmd line interface is activated
-    # instantiate a settings object and load our
-    # configuration.
-    cfg = Settings(profile).profile
+    cfg = Settings(profile)
+
+def test():
+    cfg = Settings('default')
 
 
 @cli.command()
