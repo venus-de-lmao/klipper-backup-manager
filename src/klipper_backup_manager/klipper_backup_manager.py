@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
-import cli
+import kbm
+
 if __name__ == "__main__":
-    cli.cli()
+    print ("Main!")

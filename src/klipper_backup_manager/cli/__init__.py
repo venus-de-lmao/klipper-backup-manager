@@ -1,30 +1,10 @@
-
-
-
 import logging
 import os
 import sys
 from logging.handlers import TimedRotatingFileHandler as TRFileHandler
 
 import cloup
-import kbm
 from cloup import option
-from kbm import archiver as kbmarchiver
-from kbm import settings as kbmsettings
-
-logdir = os.path.join(os.path.expanduser("~/.kbmlocal"), "logs")
-logfile = os.path.join(logdir, "kbm.log")
-log = logging.getLogger(__name__)
-clog = logging.StreamHandler(sys.stdout)
-clog.setLevel(logging.INFO)
-flog = TRFileHandler(logfile, when="midnight", interval=1, backupCount=7)
-timestamped = logging.Formatter(fmt="%(asctime)s %(name)-8s %(levelname)-10s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-flog.setLevel(logging.INFO)
-flog.setFormatter(timestamped)
-log = logging.getLogger('kbm')
-log.setLevel(logging.DEBUG)
-log.addHandler(clog)
-log.addHandler(flog)
 
 @cloup.group()
 @option(
