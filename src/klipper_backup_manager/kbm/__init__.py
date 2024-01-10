@@ -1,15 +1,14 @@
 # SPDX-FileCopyrightText: 2023-present Laurel Ash <laurel.ash@proton.me>
 # SPDX-License-Identifier: GPL-3.0-or-later
-import logging
-import yaml
-from pathlib import Path as p
-import click, cloup
-from cloup import option
+import tarfile
 from datetime import datetime as d
+from os import chdir
+from pathlib import Path
 
-from logging.handlers import TimedRotatingFileHandler as TRFileHandler
+import cloup
+import yaml
 
-kbmlocal = p.home().joinpath('.kbmlocal')
+kbmlocal = Path.home().joinpath('.kbmlocal')
 backupdir = kbmlocal.joinpath('backups')
 logdir = kbmlocal.joinpath('logs')
 kbmyaml = kbmlocal.joinpath('kbm.yaml')
@@ -20,76 +19,71 @@ if not logdir.exists():
     logdir.mkdir(parents=True)
 
 class Settings:
-    def default_settings(self):
-        return {
-            'default': {
-                'gcodes_dir': '~/printer_data/gcodes',
-                'config_dir': '~/printer_data/config',
-                'max_backups': 5,
-                'extras': {
-                    'kiauh': {
-                        'location': '~/kiauh',
-                        'git_repo': 'https://github.com/dw-0/kiauh.git'
+    def def_settings(self):
+        res = {
+            'printer_data': '~/printer_data',
+            'configs': ['config','database'],
+            'max_backups': 5,
+            'mostrecent': {
+                'config': None,
+                'gcode': None
+            },
+            'extras': {
+                'kiauh': {
+                    'location': '~/kiauh',
+                    'git_repo': 'https://github.com/dw-0/kiauh.git'
                     },
-                    'kamp': {
-                        'location': '~/Klipper-Adaptive-Meshing-Purging',
-                        'git_repo': 'https://github.com/kyleisah/Klipper-Adaptive-Meshing-Purging'
-                    }
+                'kamp': {
+                    'location': '~/Klipper-Adaptive-Meshing-Purging',
+                    'git_repo': 'https://github.com/kyleisah/Klipper-Adaptive-Meshing-Purging'
                 }
             }
         }
-    def __init__(self, profile):
+        return res
+    def __init__(self):
+        self.profile = self.def_settings() # start with default settings
         if not kbmyaml.exists(): # dump the default profile into a file
-            self.profile = self.default_settings()['default']
-            with open(kbmyaml, 'w') as file:
-                yaml.safe_dump(self.default_settings(), file)
-        else:
-            with open(kbmyaml, 'r') as file:
-                self.profile = yaml.safe_load(file)[profile]
+            with open(kbmyaml, 'w') as f:
+                yaml.safe_dump(self.profile, f)
+    def get(self, entry_name, value=None):
+        return self.profile.get(entry_name, value)
     def write(self):
-        with open(kbmyaml, 'r+') as cfg_file:
-            self.newcfg = yaml.safe_load(cfg_file)
-        self.newcfg.update(self.profile, self.settings)
-        yaml.safe_dump(self.newcfg, kbmyaml)
-    def get(self, entry_name):
-        return self.profile.get(entry_name)
-
+        with open(kbmyaml, 'w') as file:
+            yaml.safe_dump(self.profile, file)
+    def __enter__(self):
+        with open(kbmyaml) as file:
+            self.profile = yaml.safe_load(file)
+        return self
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        return
 
 @cloup.group()
-@option(
-    '--debug', '-d', is_flag=True,
-    required=False, help='Enables debug messages.')
-@option(
-    '--profile', '-p',
-    required=False, default='default',
-    help='Specifies which settings profile from '\
-        'kbm.yaml to use. Uses default settings if not specified.'
-    )
-def cli(debug, profile='default'):
-    cfg = Settings(profile)
 
-def test():
-    cfg = Settings('default')
-
-
-@cli.command()
-@cloup.argument('tag')
-def backup(tag):
-    log.debug("Attempting to start backup: '%s'", tag)
-    if tag not in list(cfg.profile) and tag != 'all':
-        log.warning("Invalid task backup '%s'", tag)
-        sys.exit()
-    log.debug("Validated backup task: '%s'", tag)
-    pdata = cfg.pull_entry('printer').get('printer_data')
-    log.debug('Initializing Archive object.')
-    arc_file = kbmarchiver.Archive(tag, pdata)
-    log.info('Creating file.')
-    arc_file.create_file()
-
-def get_file_list(tag='all'):
-    tags = ([t for t in list(cfg.profile) if 'maxbackups' in cfg.profile[t]]) if tag == 'all' else [tag]
-    tag_files = [f for f in os.listdir(kbm.backupdir) if os.path.isfile(os.path.join(kbm.backupdir, f))]
-    for tf in tag_files:
-        if tf.startswith(tuple(tags)):
-            yield tf
-
+def cli(gcode):
+    pass
+@cli.command(help="Backs up your files.")
+@cloup.argument(
+    "gcode",
+    required=False,
+    default=False,
+    help="Backs up gcode files instead of Klipper config files (which is the default if you use 'backup' with no arguments)."
+)
+def backup(gcode=False):
+    file_tag = "config" if not gcode else "gcode"
+    timestamp = d.now().astimezone().strftime("%Y-%m-%d_%H%M")
+    backup_filename = f"{file_tag}_backup_{timestamp}.tar.xz"
+    with Settings() as cfg:
+        maxbackups = cfg.get("max_backups", 5)
+        configs = cfg.get("configs", None)
+        extras = cfg.get("extras", None)
+        printer_data = Path(cfg.get("printer_data")).expanduser()
+    with tarfile.open(backup_filename, "w:xz") as tar:
+        chdir(printer_data.parent)
+        if gcode:
+            tar.add(printer_data.stem.join("gcodes"))
+        else:
+            for t in configs:
+                tar.add(printer_data.stem.join(t))
+    with Settings() as cfg:
+        cfg.profile["mostrecent"].update(file_tag, backup_filename)
+        cfg.write()

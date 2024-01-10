@@ -24,13 +24,12 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ['click', 'cloup', 'tqdm']
+dependencies = ['click', 'cloup', 'tqdm', 'pyyaml']
 
 [project.urls]
 Documentation = "https://github.com/venus-de-lmao/klipper-backup-manager#readme"
 Issues = "https://github.com/venus-de-lmao/klipper-backup-manager/issues"
 Source = "https://github.com/venus-de-lmao/klipper-backup-manager"
-
 
 
 [tool.hatch.version]
@@ -40,13 +39,19 @@ path = "src/klipper_backup_manager/__about__.py"
 dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
-]
+  "click",
+  "cloup",
+  "pyyaml"]
+
 [tool.hatch.envs.test]
 dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
   "pytest-cov",
-  "pytest-watcher"
+  "pytest-watcher",
+  "click",
+  "cloup",
+  "pyyaml"
 ]
 
 [tool.hatch.envs.default.scripts]
@@ -99,3 +104,5 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+[tool.hatch.metadata]
+allow-direct-references = true
