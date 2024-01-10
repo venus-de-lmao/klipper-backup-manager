@@ -1,26 +1,35 @@
 # SPDX-FileCopyrightText: 2023-present Laurel Ash <laurel.ash@proton.me>
 # SPDX-License-Identifier: GPL-3.0-or-later
 import tarfile
-from datetime import datetime as d
+from datetime import datetime
 from os import chdir
 from pathlib import Path
 
 import cloup
+from cloup import option_group, option
+from cloup.constraints import RequireAtLeast
+
 import yaml
 
+# TODO:
+# Rewrite command-line interface w/ option groups
+# Reimplement logging and tqdm progress bars.
+# Write restore function.
+# Look into remote upload options besides rclone.
+
 kbmlocal = Path.home().joinpath('.kbmlocal')
-backupdir = kbmlocal.joinpath('backups')
+backup_dir = kbmlocal.joinpath('backups')
 logdir = kbmlocal.joinpath('logs')
 kbmyaml = kbmlocal.joinpath('kbm.yaml')
-if not backupdir.exists():
-    backupdir.mkdir(parents=True)
+if not backup_dir.exists():
+    backup_dir.mkdir(parents=True)
 
 if not logdir.exists():
     logdir.mkdir(parents=True)
 
 class Settings:
     def def_settings(self):
-        res = {
+        return {
             'printer_data': '~/printer_data',
             'configs': ['config','database'],
             'max_backups': 5,
@@ -39,7 +48,6 @@ class Settings:
                 }
             }
         }
-        return res
     def __init__(self):
         self.profile = self.def_settings() # start with default settings
         if not kbmyaml.exists(): # dump the default profile into a file
@@ -57,21 +65,13 @@ class Settings:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         return
 
-@cloup.group()
 
-def cli(gcode):
-    pass
-@cli.command(help="Backs up your files.")
-@cloup.argument(
-    "gcode",
-    required=False,
-    default=False,
-    help="Backs up gcode files instead of Klipper config files (which is the default if you use 'backup' with no arguments)."
-)
-def backup(gcode=False):
+
+def backup():
     file_tag = "config" if not gcode else "gcode"
-    timestamp = d.now().astimezone().strftime("%Y-%m-%d_%H%M")
+    timestamp = datetime.now().astimezone().strftime("%Y-%m-%d_%H%M")
     backup_filename = f"{file_tag}_backup_{timestamp}.tar.xz"
+    backup_path = backup_dir
     with Settings() as cfg:
         maxbackups = cfg.get("max_backups", 5)
         configs = cfg.get("configs", None)
