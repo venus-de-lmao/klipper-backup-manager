@@ -6,6 +6,7 @@ import sys
 import tarfile
 from datetime import datetime
 from pathlib import Path
+
 import yaml
 from tqdm import tqdm
 
@@ -92,7 +93,6 @@ def backup(mode='c'):
     with Settings() as cfg:
         maxbackups = cfg.get("max_backups", 5)
         configs = cfg.get("configs", None)
-        extras = cfg.get("extras", None)
         printer_data = Path(cfg.get("printer_data")).expanduser()
         pdata_stem = Path(printer_data.stem)
     tgt = [pdata_stem.joinpath(f) for f in configs] if not gcode\
@@ -154,7 +154,6 @@ def restore_kiauh():
             return False
         kdir = Path(extras["kiauh"].get("location")).resolve()
         k_repo = extras["kiauh"].get("git_repo")
-        pdata = Path(cfg.get("printer_data")).resolve()
     if not Path(kdir).exists():
         # Check to see if KIAUH is already installed, and install if not.
         print("KIAUH not detected. Install now?")

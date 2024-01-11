@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-import kbm
 import sys
+
 import cloup
-from cloup import option_group, option
-from cloup.constraints import mutually_exclusive, RequireAtLeast
+import kbm
+from cloup import option, option_group
+from cloup.constraints import RequireExactly
+
 
 @cloup.command()
-@option_group("Archive options:",
+@option_group("Archive options",
     option(
         "--backup", "-b", is_flag=True,
         help="Backs up your selected target."
@@ -16,10 +18,10 @@ from cloup.constraints import mutually_exclusive, RequireAtLeast
         help="Restores your selected target."
     ),
     help="Specify whether to back up or restore files.",
-    constraint=mutually_exclusive
+    constraint=RequireExactly(1)
 )
 @option_group(
-    "Target options:",
+    "Target options",
     option(
         "--config","-c", is_flag=True, help="Backs up Klipper configuration files."
     ),
@@ -27,14 +29,18 @@ from cloup.constraints import mutually_exclusive, RequireAtLeast
         "--gcode", "-g", is_flag=True, help="Backs up gcode files."
         ),
         help="Specify which files to back up or restore.",
-        constraint=mutually_exclusive
+        constraint=RequireExactly(1)
 )
 def cli(backup, restore, config, gcode):
+    if config:
+        run_mode = "config"
+    elif gcode:
+        run_mode = "gcode"
     if backup:
-        kbm.backup(mode=("config" if config else "gcode"))
+        kbm.backup(mode=run_mode)
         sys.exit(0)
     if restore:
-        kbm.restore(mode=("config" if config else "gcode"))
+        kbm.restore(mode=run_mode)
         sys.exit(0)
 
 if __name__ == "__main__":
