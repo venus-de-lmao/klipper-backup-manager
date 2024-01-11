@@ -22,8 +22,8 @@ pip install klipper-backup-manager
 
 ## Use
 
-The interface is simple:
-```console
+The interface is simple. Settings are controlled by the **kbm.yaml** file in ~/.kbmlocal, which will be automatically created if it doesn't exist.
+
 Usage: klipper_backup_manager.py [OPTIONS]
 
 Archive options: [exactly 1 required]
@@ -39,6 +39,6 @@ Target options: [exactly 1 required]
 Other options:
   --help         Show this message and exit.```
 
+## Issues
 
-
-Settings are controlled by the **kbm.yaml** file in ~/.kbmlocal which the app will automatically create with default settings the first time you run it. Please let me know via github if you have any issues.
+ Please open an issue on GitHub if you have any problems.
