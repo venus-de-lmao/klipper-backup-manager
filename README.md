@@ -38,7 +38,8 @@ Target options: [exactly 1 required]
   -g, --gcode    Backs up gcode files.
 
 Other options:
-  --help         Show this message and exit.```
+  --help         Show this message and exit.
+  ```
 
 ## Issues
 
