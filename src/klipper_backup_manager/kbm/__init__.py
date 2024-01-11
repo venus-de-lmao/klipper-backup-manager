@@ -3,15 +3,14 @@
 import tarfile
 from datetime import datetime
 from os import chdir
+import sys
+import pathlib
 from pathlib import Path
-
-import cloup
-from cloup import option_group, option
-from cloup.constraints import RequireAtLeast
-
+from time import sleep
 import yaml
+from tqdm import tqdm
 
-# TODO:
+# To do:
 # Rewrite command-line interface w/ option groups
 # Reimplement logging and tqdm progress bars.
 # Write restore function.
@@ -21,6 +20,20 @@ kbmlocal = Path.home().joinpath('.kbmlocal')
 backup_dir = kbmlocal.joinpath('backups')
 logdir = kbmlocal.joinpath('logs')
 kbmyaml = kbmlocal.joinpath('kbm.yaml')
+def directory_files(target):
+    # generator function to
+    top_dir = Path(target)
+    outlist = []
+    for dirpath, dirs, files in pathlib.os.walk(top_dir):
+        for f in files:
+            outlist.append(str(Path(dirpath).joinpath(f)))
+    return sorted(outlist)
+def directory_size(target):
+    file_size = 0
+    for f in directory_files(target):
+        file_size += f.stat().st_size
+    return file_size
+
 if not backup_dir.exists():
     backup_dir.mkdir(parents=True)
 
@@ -67,23 +80,29 @@ class Settings:
 
 
 
-def backup():
+def backup(gcode: False):
     file_tag = "config" if not gcode else "gcode"
     timestamp = datetime.now().astimezone().strftime("%Y-%m-%d_%H%M")
     backup_filename = f"{file_tag}_backup_{timestamp}.tar.xz"
-    backup_path = backup_dir
     with Settings() as cfg:
         maxbackups = cfg.get("max_backups", 5)
         configs = cfg.get("configs", None)
         extras = cfg.get("extras", None)
         printer_data = Path(cfg.get("printer_data")).expanduser()
-    with tarfile.open(backup_filename, "w:xz") as tar:
-        chdir(printer_data.parent)
-        if gcode:
-            tar.add(printer_data.stem.join("gcodes"))
-        else:
-            for t in configs:
-                tar.add(printer_data.stem.join(t))
-    with Settings() as cfg:
-        cfg.profile["mostrecent"].update(file_tag, backup_filename)
-        cfg.write()
+        pdata_stem = Path(printer_data.stem)
+    tgt = [pdata_stem.joinpath(f) for f in configs] if not gcode\
+        else [pdata_stem.joinpath("gcodes")]
+    #with tarfile.open(backup_filename, "w:xz") as tar:
+    chdir(printer_data.parent)
+    for t in tgt:
+        print("Backing up: {}".format(t))
+        with tqdm(total=directory_size(t), unit="B", unit_scale=True) as pbar:
+            with tarfile.open(backup_filename, 'w:xz') as tar:
+                for f in directory_files(t):
+                    tqdm.write(f)
+                    tar.add(f)
+                    pbar.update(f.stat().st_size)
+
+   # with Settings() as cfg:
+    #    cfg.profile["mostrecent"].update(file_tag, backup_filename)
+    #   cfg.write()
