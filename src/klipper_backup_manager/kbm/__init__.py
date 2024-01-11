@@ -6,8 +6,6 @@ import sys
 import tarfile
 from datetime import datetime
 from pathlib import Path
-from cloup import option_group, option
-from cloup.constraints import mutually_exclusive
 import yaml
 from tqdm import tqdm
 
@@ -191,33 +189,3 @@ def restore_kamp():
     # All of the KAMP settings are in the printer_data/config directory, so we don't
     # want to overwrite those with the default installation
 
-@option_group(
-    "Archive options:",
-    "Choose whether to back up or restore files.",
-    option(
-        "--backup", "-b", is_flag=True,
-        help="Backs up your selected target."
-    ),
-    option(
-        "--restore", "-", is_flag=True,
-        help="Restores your selected target."
-    ),
-    constraint=mutually_exclusive
-)
-@option_group(
-    "Target options:",
-    "Choose what to back up and restore.",
-    option(
-        "--config","c", help="Backs up Klipper configuration files.", is_flag=True
-    ),
-    option(
-        "--gcode", "-g", help="Backs up gcode files.", is_flag=True
-    ),
-    constraint=mutually_exclusive
-)
-def cli(backup, restore, config, gcode):
-    if backup:
-        backup(mode=("config" if config else "gcode"))
-        sys.exit(0)
-    if restore:
-        restore(mode=("config" if config else "gcode"))

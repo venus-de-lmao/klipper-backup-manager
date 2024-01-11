@@ -15,6 +15,7 @@ from cloup.constraints import mutually_exclusive, RequireAtLeast
         "--restore", "-r", is_flag=True,
         help="Restores your selected target."
     ),
+    help="Specify whether to back up or restore files.",
     constraint=mutually_exclusive
 )
 @option_group(
@@ -25,6 +26,7 @@ from cloup.constraints import mutually_exclusive, RequireAtLeast
     option(
         "--gcode", "-g", is_flag=True, help="Backs up gcode files."
         ),
+        help="Specify which files to back up or restore.",
         constraint=mutually_exclusive
 )
 def cli(backup, restore, config, gcode):
