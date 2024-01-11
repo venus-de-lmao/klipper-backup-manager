@@ -11,7 +11,6 @@
 - [License](#license)
 
 ## Installation
-It's now up on PyPI!
 
 ```console
 pip install klipper-backup-manager 
@@ -39,5 +38,7 @@ Target options: [exactly 1 required]
 
 Other options:
   --help         Show this message and exit.```
+
+
 
 Settings are controlled by the **kbm.yaml** file in ~/.kbmlocal which the app will automatically create with default settings the first time you run it. Please let me know via github if you have any issues.
