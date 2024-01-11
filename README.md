@@ -9,6 +9,8 @@
 
 - [Installation](#installation)
 - [License](#license)
+- [Use](#Use)
+- [Issues](#Issues)
 
 ## Installation
 
