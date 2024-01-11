@@ -84,9 +84,13 @@ def arc_cleanup(files: list, maximum: int):
     for f in files[maximum::]:
         os.remove(f)
 
-def backup(mode):
-    mode = mode.lower()[0]
-    file_tag = "config" if mode=="c" else "gcode"
+def get_most_recent(files: list):
+    for f in files:
+        if Path(f).exists():
+            return f
+
+def backup(config, gcode):
+    file_tag = "config" if config else "gcode"
     timestamp = datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
     backup_filename = f"{file_tag}_backup_{timestamp}.tar.xz"
     backup_file_path = Path(backup_dir.joinpath(backup_filename))
@@ -95,50 +99,48 @@ def backup(mode):
         configs = cfg.get("configs", None)
         printer_data = Path(cfg.get("printer_data")).expanduser()
         pdata_stem = Path(printer_data.stem)
-    tgt = pdata_stem.joinpath("config") if mode=="c"\
+    tgt = pdata_stem.joinpath("config") if config\
         else pdata_stem.joinpath("gcodes")
+    if not printer_data.exists():
+        print(f"Klipper does not appear to be installed! \x1b[33;1m{printer_data.resolve()!s}\x1b[39;22m directory not found.")
+        print("It is recommended to install Klipper with KIAUH (Klipper Install And Update Helper).")
+        do_restore_kiauh()
+        sys.exit(0)
     os.chdir(printer_data.parent)
-    print(f"Backing up: {tgt}")
+    print(f"Backing up: \x1b[33;1m{tgt}\x1b[39;22m")
     with (tqdm(total=directory_size(tgt), unit="B", unit_scale=True, unit_divisor=1024) as pbar,
     tarfile.open(backup_file_path, 'w:xz') as tar):
         for f in directory_files(tgt):
             tqdm.write(str(f))
             tar.add(f)
             pbar.update(f.stat().st_size)
-        if mode=="c":
+        if config:
             db_dir = pdata_stem.joinpath("database")
             db_size = directory_size(db_dir)
             db_files = directory_files(db_dir)
             pbar.reset(total=db_size)
-            pbar.write(f"Backing up: {db_dir}")
-            for f in directory_files(pdata_stem.joinpath("database")):
+            pbar.write(f"Backing up: \x1b[33;1m{db_dir}\x1b[39;22m")
+            for f in db_files:
                 tqdm.write(str(f))
                 tar.add(f)
                 pbar.update(f.stat().st_size)
 
-    cbackups = sorted(backup_dir.glob("config_backup_*.tar.*"))
-    gbackups = sorted(backup_dir.glob("gcode_backup_*.tar.*"))
-    arc_cleanup(cbackups, maxbackups)
-    arc_cleanup(gbackups, maxbackups)
-    with Settings() as cfg:
-        cfg.profile["mostrecent"][file_tag] = backup_filename
-        cfg.write()
+    backups = sorted(backup_dir.glob(f"{file_tag}_backup_*.tar.*"), reverse=True)
+    arc_cleanup(backups, maxbackups)
 
 def restore(config, gcode):
     tag = "config" if config else "gcode"
     with Settings() as cfg:
-        archive_path = backup_dir.joinpath(
-            cfg.profile["mostrecent"][tag]
-        )
+
         pdata = Path(cfg.get("printer_data")).expanduser()
-    print(pdata)
+    backups = sorted(backup_dir.glob(f"{tag}_backup_*.tar.*"), reverse=True)
+    archive_path = get_most_recent(backups)
     os.chdir(pdata.parent)
     t_size = 0
     with tarfile.open(archive_path, "r") as tar:
         for member in tar.getmembers():
             t_size = (t_size+member.size if member.isfile() else t_size)
-    print(t_size)
-    print(f"Extracting: {archive_path}")
+    print(f"Extracting: \x1b[33;1m{archive_path}\x1b[39;22m")
     with (
         tqdm(
             total=t_size,
@@ -168,27 +170,21 @@ def do_restore_kiauh():
         extras = cfg.get("extras")
         if "kiauh" not in extras:
             return False
-        kdir = Path(extras["kiauh"].get("location")).resolve()
+        kdir = Path(extras["kiauh"].get("location")).expanduser()
         k_repo = extras["kiauh"].get("git_repo")
     if not Path(kdir).exists():
         # Check to see if KIAUH is already installed, and install if not.
-        print("KIAUH not detected. Install now?")
-        if not input("Install Klipper Install And Update Helper? [yN]: ").lower().startswith("y"):
+        if not input("Install Klipper Install And Update Helper? [y\x1b[1mN\x1b[22m]: ").lower().startswith("y"):
             return False
-    gitclone = subprocess.run(["git", "clone", k_repo], check=True)
-    if gitclone.returncode:
-        sys.exit(gitclone.returncode)
-    i = input("Run KIAUH now? [Yn]: ").lower()
-    if i.startswith("y"):
-        kiauh_cmd = str(Path.home().joinpath("kiauh", "kiauh.sh"))
-        do_kiauh = subprocess.run([kiauh_cmd], check=True)
-        if do_kiauh.returncode:
-            sys.exit(do_kiauh.returncode)
+        gitclone = subprocess.run(["git", "clone", k_repo], check=True)
+        if gitclone.returncode:
+            sys.exit(gitclone.returncode)
+        print(f"KIAUH installed successfully. Run \x1b[1;33m{kdir}/kiauh.sh\x1b[22;39m to reinstall Klipper.")
     return True
 
 def do_restore_kamp():
     # Prompt user to reinstall KAMP; default is yes.
-    if input("Reinstall Klipper-Adaptive-Meshing-Purging? [Yn]").lower().startswith("n"):
+    if input("Reinstall \x1b[33;1mKlipper-Adaptive-Meshing-Purging\x1b[39;22m? [\x1b[1mY\x1b[22mn]").lower().startswith("n"):
         return None
     os.chdir(Path.home())
     with Settings() as cfg:
@@ -197,7 +193,7 @@ def do_restore_kamp():
         kampdir = Path(cfg.profile["extras"]["kamp"]["location"]).resolve().stem
         full_path_kampdir = Path(kampdir).absolute()
     if full_path_kampdir.exists():
-        print("KAMP directory {} already exists.".format(full_path_kampdir))
+        print(f"KAMP directory \x1b[33;1m{full_path_kampdir}\x1b[39;22m already exists.")
         sys.exit()
     gitclone = subprocess.run(["git", "clone", k_repo], check=True)
     if gitclone.returncode:
