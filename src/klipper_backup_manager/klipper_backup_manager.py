@@ -32,15 +32,11 @@ from cloup.constraints import RequireExactly
         constraint=RequireExactly(1)
 )
 def cli(backup, restore, config, gcode):
-    if config:
-        run_mode = "config"
-    elif gcode:
-        run_mode = "gcode"
     if backup:
-        kbm.backup(mode=run_mode)
+        kbm.backup(config, gcode)
         sys.exit(0)
     if restore:
-        kbm.restore(mode=run_mode)
+        kbm.restore(config, gcode)
         sys.exit(0)
 
 if __name__ == "__main__":

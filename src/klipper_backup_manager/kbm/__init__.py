@@ -24,7 +24,7 @@ def directory_files(target):
     top_dir = Path(target)
     outlist = []
     for dirpath, dirs, files in os.walk(top_dir):
-        outlist += [str(Path(dirpath).joinpath(f)) for f in files]
+        outlist += [Path(dirpath).joinpath(f) for f in files]
     return sorted(outlist)
 def directory_size(target):
     file_size = 0
@@ -84,66 +84,82 @@ def arc_cleanup(files: list, maximum: int):
     for f in files[maximum::]:
         os.remove(f)
 
-def backup(mode='c'):
-    mode = mode.lower()[0] if mode.lower() in ("c", "g") else "c"
+def backup(mode):
+    mode = mode.lower()[0]
     file_tag = "config" if mode=="c" else "gcode"
-    timestamp = datetime.now().astimezone().strftime("%Y-%m-%d_%H%M")
+    timestamp = datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
     backup_filename = f"{file_tag}_backup_{timestamp}.tar.xz"
-    backup_file_path = Path(kbmlocal.joinpath(backup_filename))
+    backup_file_path = Path(backup_dir.joinpath(backup_filename))
     with Settings() as cfg:
         maxbackups = cfg.get("max_backups", 5)
         configs = cfg.get("configs", None)
         printer_data = Path(cfg.get("printer_data")).expanduser()
         pdata_stem = Path(printer_data.stem)
-    tgt = [pdata_stem.joinpath(f) for f in configs] if not gcode\
-        else [pdata_stem.joinpath("gcodes")]
+    tgt = pdata_stem.joinpath("config") if mode=="c"\
+        else pdata_stem.joinpath("gcodes")
     os.chdir(printer_data.parent)
-    for t in tgt:
-        print(f"Backing up: {t}")
-        with (tqdm(total=directory_size(t), unit="B", unit_scale=True, unit_divisor=1024) as pbar,
-        tarfile.open(backup_file_path, 'w:xz') as tar):
-            for f in directory_files(t):
-                tqdm.write(f)
+    print(f"Backing up: {tgt}")
+    with (tqdm(total=directory_size(tgt), unit="B", unit_scale=True, unit_divisor=1024) as pbar,
+    tarfile.open(backup_file_path, 'w:xz') as tar):
+        for f in directory_files(tgt):
+            tqdm.write(str(f))
+            tar.add(f)
+            pbar.update(f.stat().st_size)
+        if mode=="c":
+            db_dir = pdata_stem.joinpath("database")
+            db_size = directory_size(db_dir)
+            db_files = directory_files(db_dir)
+            pbar.reset(total=db_size)
+            pbar.write(f"Backing up: {db_dir}")
+            for f in directory_files(pdata_stem.joinpath("database")):
+                tqdm.write(str(f))
                 tar.add(f)
                 pbar.update(f.stat().st_size)
-    cbackups = sorted(backup_dir.glob("config_backup_*.tar*"))
-    gbackups = sorted(backup_dir.glob("gcode_backups."))
+
+    cbackups = sorted(backup_dir.glob("config_backup_*.tar.*"))
+    gbackups = sorted(backup_dir.glob("gcode_backup_*.tar.*"))
     arc_cleanup(cbackups, maxbackups)
     arc_cleanup(gbackups, maxbackups)
     with Settings() as cfg:
-        cfg.profile["mostrecent"][file_tag].update(backup_filename)
+        cfg.profile["mostrecent"][file_tag] = backup_filename
         cfg.write()
 
-def restore(mode='c'):
-    mode = mode.lower()[0] if mode.lower() in ('c', 'g') else 'c'
+def restore(config, gcode):
+    tag = "config" if config else "gcode"
     with Settings() as cfg:
         archive_path = backup_dir.joinpath(
-            cfg["mostrecent"][("gcode" if mode=='g' else "config")]
+            cfg.profile["mostrecent"][tag]
         )
-        pdata = Path(cfg.get("printer_data"))
+        pdata = Path(cfg.get("printer_data")).expanduser()
+    print(pdata)
     os.chdir(pdata.parent)
+    t_size = 0
+    with tarfile.open(archive_path, "r") as tar:
+        for member in tar.getmembers():
+            t_size = (t_size+member.size if member.isfile() else t_size)
+    print(t_size)
     print(f"Extracting: {archive_path}")
     with (
         tqdm(
-            total=archive_path.stat().st_size,
+            total=t_size,
             unit="B", unit_scale=True, unit_divisor=1024
         ) as pbar,
         tarfile.open(archive_path, 'r') as tar):
             restore_kamp = False
-            for f in tar.members(filter="data"):
+            for f in tar.getmembers():
                 # check to see if user has backed up a KAMP cfg file
                 # and set a flag to reinstall KAMP
                 if "KAMP_Settings.cfg" in f.name:
                     restore_kamp = True
                 tqdm.write(f.name)
-                tar.extract(f)
                 pbar.update(f.size)
+                tar.extract(f, pdata.parent, filter="data")
     if restore_kamp:
-        restore_kamp()
+        do_restore_kamp()
 
 # KIAUH and KAMP restores are hardcoded
 # because they have specific installation steps
-def restore_kiauh():
+def do_restore_kiauh():
     # Prompt user to reinstall KIAUH. Default is no.
     os.chdir(Path.home())
     with Settings() as cfg:
@@ -170,7 +186,7 @@ def restore_kiauh():
             sys.exit(do_kiauh.returncode)
     return True
 
-def restore_kamp():
+def do_restore_kamp():
     # Prompt user to reinstall KAMP; default is yes.
     if input("Reinstall Klipper-Adaptive-Meshing-Purging? [Yn]").lower().startswith("n"):
         return None
@@ -179,11 +195,15 @@ def restore_kamp():
         k_repo = cfg.profile["extras"]["kamp"]["git_repo"]
         pdata = Path(cfg.get("printer_data"))
         kampdir = Path(cfg.profile["extras"]["kamp"]["location"]).resolve().stem
+        full_path_kampdir = Path(kampdir).absolute()
+    if full_path_kampdir.exists():
+        print("KAMP directory {} already exists.".format(full_path_kampdir))
+        sys.exit()
     gitclone = subprocess.run(["git", "clone", k_repo], check=True)
     if gitclone.returncode:
         sys.exit(gitclone.returncode)
-    ln_dest = pdata.joinpath("config", "KAMP")
-    os.symlink(kampdir.joinpath("Configuration"), ln_dest, target_is_directory=True)
+    ln_dest = pdata.resolve().joinpath("config", "KAMP")
+    os.symlink(Path(kampdir).joinpath("Configuration"), ln_dest, target_is_directory=True)
     # Assuming user has previously installed KAMP, this just restores the symlink
     # All of the KAMP settings are in the printer_data/config directory, so we don't
     # want to overwrite those with the default installation
