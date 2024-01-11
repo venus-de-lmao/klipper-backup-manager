@@ -6,8 +6,8 @@ import sys
 import tarfile
 from datetime import datetime
 from pathlib import Path
-from shutil import copy
-
+from cloup import option_group, option
+from cloup.constraints import mutually_exclusive
 import yaml
 from tqdm import tqdm
 
@@ -40,6 +40,8 @@ if not logdir.exists():
     logdir.mkdir(parents=True)
 
 class Settings:
+    # Here we define the default settings YAML that will be dumped
+    # into a file the first time KBM is run.
     def def_settings(self):
         return {
             'printer_data': '~/printer_data',
@@ -83,8 +85,9 @@ def arc_cleanup(files: list, maximum: int):
     for f in files[maximum::]:
         os.remove(f)
 
-def backup(gcode):
-    file_tag = "config" if not gcode else "gcode"
+def backup(mode='c'):
+    mode = mode.lower()[0] if mode.lower() in ("c", "g") else "c"
+    file_tag = "config" if mode=="c" else "gcode"
     timestamp = datetime.now().astimezone().strftime("%Y-%m-%d_%H%M")
     backup_filename = f"{file_tag}_backup_{timestamp}.tar.xz"
     backup_file_path = Path(kbmlocal.joinpath(backup_filename))
@@ -113,11 +116,11 @@ def backup(gcode):
         cfg.profile["mostrecent"][file_tag].update(backup_filename)
         cfg.write()
 
-def restore(gcode):
+def restore(mode='c'):
+    mode = mode.lower()[0] if mode.lower() in ('c', 'g') else 'c'
     with Settings() as cfg:
         archive_path = backup_dir.joinpath(
-            cfg["mostrecent"][("gcode" if gcode else "config")]
-
+            cfg["mostrecent"][("gcode" if mode=='g' else "config")]
         )
         pdata = Path(cfg.get("printer_data"))
     os.chdir(pdata.parent)
@@ -130,6 +133,8 @@ def restore(gcode):
         tarfile.open(archive_path, 'r') as tar):
             restore_kamp = False
             for f in tar.members(filter="data"):
+                # check to see if user has backed up a KAMP cfg file
+                # and set a flag to reinstall KAMP
                 if "KAMP_Settings.cfg" in f.name:
                     restore_kamp = True
                 tqdm.write(f.name)
@@ -141,27 +146,78 @@ def restore(gcode):
 # KIAUH and KAMP restores are hardcoded
 # because they have specific installation steps
 def restore_kiauh():
+    # Prompt user to reinstall KIAUH. Default is no.
     os.chdir(Path.home())
     with Settings() as cfg:
-        k_repo = cfg.profile["extras"]["kiauh"]["git_repo"]
-        pdata = Path(cfg.get("printer_data"))
+        if "extras" not in cfg.profile:
+            return False
+        extras = cfg.get("extras")
+        if "kiauh" not in extras:
+            return False
+        kdir = Path(extras["kiauh"].get("location")).resolve()
+        k_repo = extras["kiauh"].get("git_repo")
+        pdata = Path(cfg.get("printer_data")).resolve()
+    if not Path(kdir).exists():
+        # Check to see if KIAUH is already installed, and install if not.
+        print("KIAUH not detected. Install now?")
+        if not input("Install Klipper Install And Update Helper? [yN]: ").lower().startswith("y"):
+            return False
     gitclone = subprocess.run(["git", "clone", k_repo], check=True)
     if gitclone.returncode:
         sys.exit(gitclone.returncode)
-    i = input("Run KIAUH now?").lower()
+    i = input("Run KIAUH now? [Yn]: ").lower()
     if i.startswith("y"):
         kiauh_cmd = str(Path.home().joinpath("kiauh", "kiauh.sh"))
         do_kiauh = subprocess.run([kiauh_cmd], check=True)
+        if do_kiauh.returncode:
+            sys.exit(do_kiauh.returncode)
+    return True
 
 def restore_kamp():
+    # Prompt user to reinstall KAMP; default is yes.
+    if input("Reinstall Klipper-Adaptive-Meshing-Purging? [Yn]").lower().startswith("n"):
+        return None
     os.chdir(Path.home())
     with Settings() as cfg:
         k_repo = cfg.profile["extras"]["kamp"]["git_repo"]
         pdata = Path(cfg.get("printer_data"))
+        kampdir = Path(cfg.profile["extras"]["kamp"]["location"]).resolve().stem
     gitclone = subprocess.run(["git", "clone", k_repo], check=True)
     if gitclone.returncode:
         sys.exit(gitclone.returncode)
     ln_dest = pdata.joinpath("config", "KAMP")
-    kampdir = Path("Klipper-Adaptive-Meshing-Purging")
     os.symlink(kampdir.joinpath("Configuration"), ln_dest, target_is_directory=True)
-    # Assuming you have previously installed KAMP, this just restores the symlink 
+    # Assuming user has previously installed KAMP, this just restores the symlink
+    # All of the KAMP settings are in the printer_data/config directory, so we don't
+    # want to overwrite those with the default installation
+
+@option_group(
+    "Archive options:",
+    "Choose whether to back up or restore files.",
+    option(
+        "--backup", "-b", is_flag=True,
+        help="Backs up your selected target."
+    ),
+    option(
+        "--restore", "-", is_flag=True,
+        help="Restores your selected target."
+    ),
+    constraint=mutually_exclusive
+)
+@option_group(
+    "Target options:",
+    "Choose what to back up and restore.",
+    option(
+        "--config","c", help="Backs up Klipper configuration files.", is_flag=True
+    ),
+    option(
+        "--gcode", "-g", help="Backs up gcode files.", is_flag=True
+    ),
+    constraint=mutually_exclusive
+)
+def cli(backup, restore, config, gcode):
+    if backup:
+        backup(mode=("config" if config else "gcode"))
+        sys.exit(0)
+    if restore:
+        restore(mode=("config" if config else "gcode"))
