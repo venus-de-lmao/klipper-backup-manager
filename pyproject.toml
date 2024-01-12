@@ -26,6 +26,9 @@ classifiers = [
 ]
 dependencies = ['click', 'cloup', 'tqdm', 'pyyaml']
 
+[project.scripts]
+kbm-tool = "klipper_backup_manager.klipper_backup_manager:cli"
+
 [project.urls]
 Documentation = "https://github.com/venus-de-lmao/klipper-backup-manager#readme"
 Issues = "https://github.com/venus-de-lmao/klipper-backup-manager/issues"
@@ -72,6 +75,9 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
+packages = [
+  "src/klipper_backup_manager", "kbm"
+]
 exclude = [
   "__pycache__", ".pytest_cache", ".git*"
 ]
