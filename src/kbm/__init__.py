@@ -122,7 +122,6 @@ def do_archive(tag: str):
     tarfile.open(backup_file_path, 'w:xz') as tar):
         for f in tgt_files:
             tqdm.write(str(f))
-            tqdm.write(str(f.stat().st_size))
             tar.add(f)
             pbar.update(f.stat().st_size)
        

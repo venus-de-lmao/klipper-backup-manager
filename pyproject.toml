@@ -74,9 +74,8 @@ exclude = [
   "__pycache__", ".pytest_cache", ".git*", "tests"
 ]
 
-
 [tool.hatch.build.targets.wheel]
-sources = ["src"]
+packages = ["src/kbm", "src/klipper_backup_manager"]
 exclude = [
   "__pycache__", ".pytest_cache", ".git*",
 ]
