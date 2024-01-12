@@ -76,10 +76,10 @@ exclude = [
 
 [tool.hatch.build.targets.wheel]
 packages = [
-  "src/klipper_backup_manager", "kbm"
+  "src/klipper_backup_manager", "src/kbm"
 ]
 exclude = [
-  "__pycache__", ".pytest_cache", ".git*"
+  "__pycache__", ".pytest_cache", ".git*", "src/klipper_backup_manager/kbm"
 ]
 
 [[tool.hatch.envs.all.matrix]]
