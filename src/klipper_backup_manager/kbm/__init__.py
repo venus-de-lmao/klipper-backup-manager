@@ -106,7 +106,6 @@ def do_archive(tag: str):
         print("This code should never execute!")
         sys.exit(1)
     os.chdir(printer_data.parent)
-
     dfiles = directory_files(tgt)
     tgt_files = dfiles[0]
     tgt_size = dfiles[1]
@@ -118,7 +117,7 @@ def do_archive(tag: str):
     if not tgt_files: # this should prevent accidentally creating empty tarballs
         print("No files to back up!")
         return None
-    print(f"Backing up: \x1b[33;1m{tgt}\x1b[39;22m")
+    print(f"Backing up files to: \x1b[33m{backup_file_path}\x1b[39m")
     with (tqdm(total=tgt_size, unit="B", unit_scale=True, unit_divisor=1024) as pbar,
     tarfile.open(backup_file_path, 'w:xz') as tar):
         for f in tgt_files:
