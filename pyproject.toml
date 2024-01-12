@@ -74,12 +74,11 @@ exclude = [
   "__pycache__", ".pytest_cache", ".git*", "tests"
 ]
 
+
 [tool.hatch.build.targets.wheel]
-packages = [
-  "src/klipper_backup_manager", "src/kbm"
-]
+sources = ["src"]
 exclude = [
-  "__pycache__", ".pytest_cache", ".git*", "src/klipper_backup_manager/kbm"
+  "__pycache__", ".pytest_cache", ".git*",
 ]
 
 [[tool.hatch.envs.all.matrix]]
@@ -90,10 +89,10 @@ dependencies = [
   "mypy>=1.0.0",
 ]
 [tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/klipper_backup_manager tests}"
+check = "mypy --install-types --non-interactive {args:src/klipper_backup_manager src/kbm tests}"
 
 [tool.coverage.run]
-source_pkgs = ["klipper_backup_manager", "tests"]
+source_pkgs = ["klipper_backup_manager", "kbm", "tests"]
 branch = true
 parallel = true
 omit = [
@@ -103,6 +102,7 @@ omit = [
 [tool.coverage.paths]
 klipper_backup_manager = ["src/klipper_backup_manager", "*/klipper-backup-manager/src/klipper_backup_manager"]
 tests = ["tests", "*/klipper-backup-manager/tests"]
+kbm = ["kbm", "src/kbm", "*/klipper-backup-manager/src/kbm"]
 
 [tool.coverage.report]
 exclude_lines = [
