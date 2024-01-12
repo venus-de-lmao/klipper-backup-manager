@@ -11,28 +11,24 @@ import yaml
 from tqdm import tqdm
 
 # To do:
-# Rewrite command-line interface w/ option groups
-# Reimplement logging and tqdm progress bars.
-# Write restore function.
 # Look into remote upload options besides rclone.
 
 kbmlocal = Path.home().joinpath('.kbmlocal')
 backup_dir = kbmlocal.joinpath('backups')
 logdir = kbmlocal.joinpath('logs')
 kbmyaml = kbmlocal.joinpath('kbm.yaml')
+exc_suffixes = (".bkp", ".bak", ".tmp", ".log", )
 def directory_files(target):
     top_dir = Path(target)
     outlist = []
+    outsize = 0
     for dirpath, dirs, files in os.walk(top_dir):
         for f in files:
             outpath = Path(Path(dirpath).joinpath(f))
-            outlist.append(outpath) if not outpath.is_symlink() else None
-    return sorted(outlist)
-def directory_size(target):
-    file_size = 0
-    for f in directory_files(target):
-        file_size += f.stat().st_size
-    return file_size
+            if (not outpath.is_symlink()) and (outpath.suffix not in exc_suffixes):
+                outlist.append(outpath)
+                outsize += outpath.stat().st_size
+    return (sorted(outlist), outsize)
 
 if not backup_dir.exists():
     backup_dir.mkdir(parents=True)
@@ -91,50 +87,54 @@ def get_most_recent(files: list):
         if Path(f).exists():
             return f
 
-def backup(config, gcode):
-    file_tag = "config" if config else "gcode"
+def do_archive(tag: str):
+    if tag not in ("config", "gcode"):
+        raise ValueError
     timestamp = datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
-    backup_filename = f"{file_tag}_backup_{timestamp}.tar.xz"
+    backup_filename = f"{tag}_backup_{timestamp}.tar.xz"
     backup_file_path = Path(backup_dir.joinpath(backup_filename))
     with Settings() as cfg:
         maxbackups = cfg.get("max_backups", 5)
         configs = cfg.get("configs", None)
         printer_data = Path(cfg.get("printer_data")).expanduser()
         pdata_stem = Path(printer_data.stem)
-    tgt = pdata_stem.joinpath("config") if config\
-        else pdata_stem.joinpath("gcodes")
-    if not printer_data.exists():
-        print(f"Klipper does not appear to be installed! \x1b[33;1m{printer_data.resolve()!s}\x1b[39;22m directory not found.")
-        print("It is recommended to install Klipper with KIAUH (Klipper Install And Update Helper).")
-        do_restore_kiauh()
-        sys.exit(0)
+    if tag == "config":
+        tgt = pdata_stem.joinpath("config")
+    elif tag == "gcode":
+        tgt = pdata_stem.joinpath("gcodes")
+    else:
+        print("This code should never execute!")
+        sys.exit(1)
     os.chdir(printer_data.parent)
-    print(f"Backing up: \x1b[33;1m{tgt}\x1b[39;22m")
-    with (tqdm(total=directory_size(tgt), unit="B", unit_scale=True, unit_divisor=1024) as pbar,
+    dfiles = directory_files(tgt)
+    tgt_files = dfiles[0]
+    tgt_size = dfiles[1]
+    if tag == "config":
+        db_dir = pdata_stem.joinpath("database")
+        db_ = directory_files(db_dir)
+        tgt_files = tgt_files + db_[0]
+        tgt_size += db_[1]
+    if not tgt_files: # this should prevent accidentally creating empty tarballs
+        print("No files to back up!")
+        return None
+    print(f"Backing up files to: \x1b[33m{backup_file_path}\x1b[39m")
+    with (tqdm(total=tgt_size, unit="B", unit_scale=True, unit_divisor=1024) as pbar,
     tarfile.open(backup_file_path, 'w:xz') as tar):
-        for f in directory_files(tgt):
+        for f in tgt_files:
             tqdm.write(str(f))
+            tqdm.write(str(f.stat().st_size))
             tar.add(f)
             pbar.update(f.stat().st_size)
-        if config:
-            db_dir = pdata_stem.joinpath("database")
-            db_size = directory_size(db_dir)
-            db_files = directory_files(db_dir)
-            pbar.reset(total=db_size)
-            pbar.write(f"Backing up: \x1b[33;1m{db_dir}\x1b[39;22m")
-            for f in db_files:
-                tqdm.write(str(f))
-                tar.add(f)
-                pbar.update(f.stat().st_size)
-
-    backups = sorted(backup_dir.glob(f"{file_tag}_backup_*.tar.*"), reverse=True)
+       
+    backups = sorted(backup_dir.glob(f"{tag}_backup_*.tar.*"), reverse=True)
     arc_cleanup(backups, maxbackups)
 
-def restore(config, gcode):
-    tag = "config" if config else "gcode"
+def do_unarchive(tag: str):
+    if tag not in ("config", "gcode"):
+        raise ValueError
     with Settings() as cfg:
-
         pdata = Path(cfg.get("printer_data")).expanduser()
+        pdata_stem = Path(pdata).stem
     backups = sorted(backup_dir.glob(f"{tag}_backup_*.tar.*"), reverse=True)
     archive_path = get_most_recent(backups)
     os.chdir(pdata.parent)
@@ -160,6 +160,30 @@ def restore(config, gcode):
                 tar.extract(f, pdata.parent, filter="data")
     if restore_kamp:
         do_restore_kamp()
+    # Check to see if fluidd-config is installed and restore the symlink
+    # to fluidd.cfg
+    if tag == "config":
+        fluidd_cfg = Path(Path.home().joinpath("fluidd-config", "fluidd.cfg"))
+        if fluidd_cfg.is_file:
+            os.symlink(fluidd_cfg, Path(pdata_stem).joinpath("config", "fluidd.cfg"))
+   
+def backup(config, gcode):
+    with Settings() as cfg:
+        printer_data = Path(cfg.get("printer_data")).expanduser()
+    if not printer_data.exists():
+        print(f"Klipper does not appear to be installed! \x1b[33;1m{printer_data.resolve()!s}\x1b[39;22m directory not found.")
+        print("It is recommended to install Klipper with KIAUH (Klipper Install And Update Helper).")
+        do_restore_kiauh()
+        sys.exit(0)
+    if config:
+        do_archive("config")
+    if gcode:
+        do_archive("gcode")
+
+def restore(config, gcode):
+    if config:
+        do_unarchive("config")
+
 
 # KIAUH and KAMP restores are hardcoded
 # because they have specific installation steps
