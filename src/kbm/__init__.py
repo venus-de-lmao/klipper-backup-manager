@@ -17,7 +17,18 @@ kbmlocal = Path.home().joinpath('.kbmlocal')
 backup_dir = kbmlocal.joinpath('backups')
 logdir = kbmlocal.joinpath('logs')
 kbmyaml = kbmlocal.joinpath('kbm.yaml')
-exc_suffixes = (".bkp", ".bak", ".tmp", ".log", )
+exc_suffixes = (".bkp", ".bak", ".tmp", ".log")
+def friendly_size(num):
+    suffix = "B"
+    for unit in ("", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"):
+        if abs(num) < 1024.0:
+            s = unit + suffix
+            n = f"{num:3.1f}"
+            return f"{n : >8} {s : >3}"
+        num /= 1024.0
+    s = "YiB"
+    return f"{num:0.1f : <}"+f"{s : >}"
+
 def directory_files(target):
     top_dir = Path(target)
     outlist = []
@@ -42,12 +53,7 @@ class Settings:
     def def_settings(self):
         return {
             'printer_data': '~/printer_data',
-            'configs': ['config','database'],
             'max_backups': 5,
-            'mostrecent': {
-                'config': None,
-                'gcode': None
-            },
             'extras': {
                 'kiauh': {
                     'location': '~/kiauh',
@@ -88,20 +94,19 @@ def get_most_recent(files: list):
             return f
 
 def do_archive(tag: str):
-    if tag not in ("config", "gcode"):
-        raise ValueError
     timestamp = datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
     backup_filename = f"{tag}_backup_{timestamp}.tar.xz"
     backup_file_path = Path(backup_dir.joinpath(backup_filename))
     with Settings() as cfg:
         maxbackups = cfg.get("max_backups", 5)
-        configs = cfg.get("configs", None)
         printer_data = Path(cfg.get("printer_data")).expanduser()
         pdata_stem = Path(printer_data.stem)
     if tag == "config":
         tgt = pdata_stem.joinpath("config")
     elif tag == "gcode":
         tgt = pdata_stem.joinpath("gcodes")
+    elif tag == "database":
+        tgt = pdata_stem.joinpath("database")
     else:
         print("This code should never execute!")
         sys.exit(1)
@@ -109,15 +114,10 @@ def do_archive(tag: str):
     dfiles = directory_files(tgt)
     tgt_files = dfiles[0]
     tgt_size = dfiles[1]
-    if tag == "config":
-        db_dir = pdata_stem.joinpath("database")
-        db_ = directory_files(db_dir)
-        tgt_files = tgt_files + db_[0]
-        tgt_size += db_[1]
     if not tgt_files: # this should prevent accidentally creating empty tarballs
-        print("No files to back up!")
+        print(f"No {tag} files to back up!")
         return None
-    print(f"Backing up files to: \x1b[33m{backup_file_path}\x1b[39m")
+    print(f"Backing up {tag} files to: \x1b[33m{backup_file_path}\x1b[39m")
     with (tqdm(total=tgt_size, unit="B", unit_scale=True, unit_divisor=1024) as pbar,
     tarfile.open(backup_file_path, 'w:xz') as tar):
         for f in tgt_files:
@@ -125,7 +125,7 @@ def do_archive(tag: str):
             tar.add(f)
             pbar.update(f.stat().st_size)
        
-    backups = sorted(backup_dir.glob(f"{tag}_backup_*.tar.*"), reverse=True)
+    backups = sorted(backup_dir.glob(f"{tag}_backup_*.tar.*z"), reverse=True)
     arc_cleanup(backups, maxbackups)
 
 def do_unarchive(tag: str):
@@ -165,8 +165,40 @@ def do_unarchive(tag: str):
         fluidd_cfg = Path(Path.home().joinpath("fluidd-config", "fluidd.cfg"))
         if fluidd_cfg.is_file:
             os.symlink(fluidd_cfg, Path(pdata_stem).joinpath("config", "fluidd.cfg"))
-   
-def backup(config, gcode):
+
+def do_list(tag: str):
+    archives = [f for f in backup_dir.glob(f"{tag}*") if f.is_file()]
+    if not archives:
+        return None
+    archives.sort(reverse=True)
+    total_size = 0
+    num_archives = len(archives)
+    count = 1
+    for a in archives:
+        a_size = friendly_size(a.stat().st_size)
+        total_size += a.stat().st_size
+        print(f"\x1b[1;97m{count}: \x1b[33;1m{a.name : <}\x1b[97;22m {a_size : >16}\x1b[39m")
+        count += 1
+    print(f"\nTotal \x1b[33;1m{tag}\x1b[39;22m backups: "
+    f"\x1b[1;97m{num_archives : <}\x1b[22;39m files"
+    f"\x1b[97m{friendly_size(total_size) : >}\x1b[0m")
+
+def do_the_thing(runmode: str, tags: tuple):
+    if runmode == "backup":
+        for t in tags:
+            do_archive(t) if t else None
+    elif runmode == "restore":
+        for t in tags:
+            do_unarchive(t) if t else None
+    elif runmode == "list_backups":
+        for t in tags:
+            do_list(t) if t else None
+    else:
+        # We should never get here! Time to panic!
+        print("Code that should be unreachable in kbm.do_the_thing() has been executed. I'm scared.")
+        sys.exit(-1)
+
+def backup(tags):
     with Settings() as cfg:
         printer_data = Path(cfg.get("printer_data")).expanduser()
     if not printer_data.exists():
