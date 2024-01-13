@@ -15,7 +15,7 @@ from cloup.constraints import RequireExactly, RequireAtLeast, mutually_exclusive
     ),
     option(
         "--restore", "-r", is_flag=True,
-        help="Restores your selected target."
+        help="Restores the most recent backup from the selected category."
     ),
     option("--list-backups", "-l", is_flag=True,
     help="Lists all currently-saved files."),
@@ -25,23 +25,23 @@ from cloup.constraints import RequireExactly, RequireAtLeast, mutually_exclusive
 @option_group(
     "Target options",
     option(
-        "--config","-c", is_flag=True, help="Backs up Klipper configuration files."
+        "--config","-c", is_flag=True, help="Klipper configuration files."
     ),
     option(
-        "--gcode", "-g", is_flag=True, help="Backs up gcode files."
+        "--gcode", "-g", is_flag=True, help="Gcode files."
         ),
     option(
-        "--database", "-d", is_flag=True, help="Backs up database files."
+        "--database", "-d", is_flag=True, help="Database files."
     ),
-        help="Specify which files to back up or restore.",
+        help="Specify which files to back up, restore, or list.",
         constraint=RequireAtLeast(1)
 )
 def cli(backup, restore, list_backups, config, gcode, database):
-    tags = (
-        ("config" if config else None),
-        ("gcode" if gcode else None),
-        ("database" if database else None)
-    )
+    tag_pairs = [(config, "config"), (gcode, "gcode"), (database, "database")]
+    tags = []
+    for cond, tag_value in tag_pairs:
+        if cond:
+            tags.append(tag_value)
     modes = [backup, restore, list_backups]
     mode_index = [modes.index(i) for i in modes if i][0]
     runmode = ["backup", "restore", "list_backups"]
