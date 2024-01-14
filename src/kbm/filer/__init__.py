@@ -141,6 +141,7 @@ def do_list(tag: str):
         total_size += a.stat().st_size
         print(f"\x1b[1;97m{count}: \x1b[33;1m{a.name : <}\x1b[97;22m {a_size : >16}\x1b[39m")
         count += 1
-    print(f"\nTotal \x1b[33;1m{tag}\x1b[39;22m backups: "
-    f"\x1b[1;97m{num_archives : <}\x1b[22;39m ", lambda _: "files" if count > 1 else "file"
-    f"\x1b[97m{friendly_size(total_size) : >}\x1b[0m\n\n")
+    
+    print(f"Total \x1b[33;1m{tag}\x1b[39;22m backups: "
+    f"\x1b[1;97m{num_archives : <}\x1b[22;39m", "files" if num_archives > 1 else "file",
+    f"\x1b[97m{friendly_size(total_size) : >}\x1b[0m")

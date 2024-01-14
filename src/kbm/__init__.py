@@ -17,6 +17,7 @@ def do_the_thing(runmode: str, tags: tuple):
     elif runmode == "list_backups":
         for t in tags:
             kbm.filer.do_list(t) if t else None
+            #print("") if t else None
     else:
         # We should never get here! Time to panic!
         print("Code that should be unreachable in kbm.do_the_thing() has been executed. I'm scared.")
