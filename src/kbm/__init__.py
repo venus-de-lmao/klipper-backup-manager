@@ -68,16 +68,17 @@ def do_restore_kamp():
     os.chdir(Path.home())
     with Settings() as cfg:
         k_repo = cfg.profile["extras"]["kamp"]["git_repo"]
-        pdata = Path(cfg.get("printer_data"))
+        pdata = Path(cfg.get("printer_data")).expanduser()
         kampdir = Path(cfg.profile["extras"]["kamp"]["location"]).resolve().stem
         full_path_kampdir = Path(kampdir).absolute()
     if full_path_kampdir.exists():
         print(f"KAMP directory \x1b[33;1m{full_path_kampdir}\x1b[39;22m already exists.")
         sys.exit()
+    os.chdir(Path(pdata).parent)
     gitclone = subprocess.run(["git", "clone", k_repo], check=True)
     if gitclone.returncode:
         sys.exit(gitclone.returncode)
-    ln_dest = pdata.resolve().joinpath("config", "KAMP")
+    ln_dest = Path(pdata).joinpath("config", "KAMP")
     os.symlink(Path(kampdir).joinpath("Configuration"), ln_dest, target_is_directory=True)
     # Assuming user has previously installed KAMP, this just restores the symlink
     # All of the KAMP settings are in the printer_data/config directory, so we don't
