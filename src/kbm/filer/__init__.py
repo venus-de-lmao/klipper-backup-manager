@@ -58,7 +58,7 @@ def do_archive(tag: str):
     timestamp = datetime.now().astimezone().strftime("%Y-%m-%d_%H%M%S")
     backup_filename = f"{tag}_backup_{timestamp}.tar.xz"
     backup_file_path = Path(conf.backup_dir.joinpath(backup_filename))
-    with Settings() as cfg:
+    with conf.Settings() as cfg:
         maxbackups = cfg.get("max_backups", 5)
         printer_data = Path(cfg.get("printer_data")).expanduser()
         pdata_stem = Path(printer_data.stem)
@@ -90,8 +90,6 @@ def do_archive(tag: str):
     cleanup(backups, maxbackups)
 
 def do_unarchive(tag: str):
-    if tag not in ("config", "gcode"):
-        raise ValueError
     with Settings() as cfg:
         pdata = Path(cfg.get("printer_data")).expanduser()
         pdata_stem = Path(pdata).stem
@@ -128,7 +126,7 @@ def do_unarchive(tag: str):
             os.symlink(fluidd_cfg, Path(pdata_stem).joinpath("config", "fluidd.cfg"))
 
 def do_list(tag: str):
-    archives = [f for f in backup_dir.glob(f"{tag}*") if f.is_file()]
+    archives = [f for f in conf.backup_dir.glob(f"{tag}*") if f.is_file()]
     if not archives:
         return None
     archives.sort(reverse=True)

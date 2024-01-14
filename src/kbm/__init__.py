@@ -15,14 +15,12 @@ from tqdm import tqdm
 
 def do_the_thing(runmode: str, tags: tuple):
     if runmode == "backup":
-        for t in tags:
-            do_archive(t) if t else None
+        backup(tags)
     elif runmode == "restore":
-        for t in tags:
-            do_unarchive(t) if t else None
+        restore(tags)
     elif runmode == "list_backups":
         for t in tags:
-            do_list(t) if t else None
+            kbm.filer.do_list(t) if t else None
     else:
         # We should never get here! Time to panic!
         print("Code that should be unreachable in kbm.do_the_thing() has been executed. I'm scared.")
@@ -37,11 +35,11 @@ def backup(tags: tuple):
         do_restore_kiauh()
         sys.exit(0)
     for tag in tags:
-        filer.do_archive(tag)
+        kbm.filer.do_archive(tag)
 
 def restore(tags: tuple):
     for tag in tags:
-        filer.do_unarchive(tag)
+        kbm.filer.do_unarchive(tag)
 
 
 # KIAUH and KAMP restores are hardcoded
