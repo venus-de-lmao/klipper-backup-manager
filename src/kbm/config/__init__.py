@@ -1,14 +1,8 @@
 # SPDX-FileCopyrightText: 2023-present Laurel Ash <laurel.ash@proton.me>
 # SPDX-License-Identifier: GPL-3.0-or-later
-import os
-import subprocess
-import sys
-import tarfile
-from datetime import datetime
 from pathlib import Path
 
 import yaml
-from tqdm import tqdm
 
 # To do:
 # Look into remote upload options besides rclone.

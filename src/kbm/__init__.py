@@ -3,15 +3,11 @@
 import os
 import subprocess
 import sys
-import tarfile
-from datetime import datetime
 from pathlib import Path
 
 import kbm.filer
 from kbm.config import Settings
 
-import yaml
-from tqdm import tqdm
 
 def do_the_thing(runmode: str, tags: tuple):
     if runmode == "backup":

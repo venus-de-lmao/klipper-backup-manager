@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-import sys
 
 import cloup
 import kbm
 from cloup import option, option_group
-from cloup.constraints import RequireExactly, RequireAtLeast, mutually_exclusive
+from cloup.constraints import RequireAtLeast, RequireExactly
 
 
 @cloup.command()
@@ -43,7 +42,7 @@ def cli(backup, restore, list_backups, config, gcode, database):
         if cond:
             tags.append(tag_value)
     modes = [backup, restore, list_backups]
-    mode_index = [modes.index(i) for i in modes if i][0]
+    mode_index = next(modes.index(i) for i in modes if i)
     runmode = ["backup", "restore", "list_backups"]
     kbm.do_the_thing(runmode[mode_index], tags)
 

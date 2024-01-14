@@ -1,12 +1,14 @@
 # SPDX-FileCopyrightText: 2023-present Laurel Ash <laurel.ash@proton.me>
 # SPDX-License-Identifier: GPL-3.0-or-later
 import os
-import subprocess
+import pathlib
 import sys
 import tarfile
 from datetime import datetime
 from pathlib import Path
+
 from tqdm import tqdm
+
 import kbm.config as conf
 
 # To do:
@@ -50,7 +52,7 @@ def cleanup(files: list, maximum: int):
 
 def most_recent(files: list) -> os.PathLike:
     for f in sorted(files, reverse=True):
-        p = (Path(f) if type(f) == str else f)
+        p = (f if isinstance(f, pathlib.PathLike) else Path(f))
         if p.exists():
             return p
 
@@ -85,7 +87,7 @@ def do_archive(tag: str):
             tqdm.write(str(f))
             tar.add(f)
             pbar.update(f.stat().st_size)
-       
+
     backups = sorted(conf.backup_dir.glob(f"{tag}_backup_*.tar.*z"), reverse=True)
     cleanup(backups, maxbackups)
 
