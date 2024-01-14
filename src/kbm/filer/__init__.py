@@ -31,7 +31,7 @@ def directory_files(target):
     outlist = []
     outsize = 0
     exc_suffixes = (".bkp", ".bak", ".tmp", ".log")
-    for dirpath, dirs, files in os.walk(top_dir):
+    for dirpath, _, files in os.walk(top_dir):
         for f in files:
             outpath = Path(Path(dirpath).joinpath(f))
             if (not outpath.is_symlink()) and (outpath.suffix not in exc_suffixes):
