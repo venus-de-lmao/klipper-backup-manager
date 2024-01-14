@@ -9,6 +9,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
+import kbm
 import kbm.config as conf
 
 # To do:
@@ -52,7 +53,7 @@ def cleanup(files: list, maximum: int):
 
 def most_recent(files: list) -> os.PathLike:
     for f in sorted(files, reverse=True):
-        p = (f if isinstance(f, pathlib.PathLike) else Path(f))
+        p = (f if isinstance(f, pathlib.PurePath) else Path(f))
         if p.exists():
             return p
 
@@ -92,11 +93,11 @@ def do_archive(tag: str):
     cleanup(backups, maxbackups)
 
 def do_unarchive(tag: str):
-    with Settings() as cfg:
+    with conf.Settings() as cfg:
         pdata = Path(cfg.get("printer_data")).expanduser()
         pdata_stem = Path(pdata).stem
     backups = sorted(conf.backup_dir.glob(f"{tag}_backup_*.tar.*"), reverse=True)
-    archive_path = get_most_recent(backups)
+    archive_path = most_recent(backups)
     os.chdir(pdata.parent)
     t_size = 0
     with tarfile.open(archive_path, "r") as tar:
@@ -119,12 +120,12 @@ def do_unarchive(tag: str):
                 pbar.update(f.size)
                 tar.extract(f, pdata.parent, filter="data")
     if restore_kamp:
-        do_restore_kamp()
+        kbm.do_restore_kamp()
     # Check to see if fluidd-config is installed and restore the symlink
     # to fluidd.cfg
     if tag == "config":
         fluidd_cfg = Path(Path.home().joinpath("fluidd-config", "fluidd.cfg"))
-        if fluidd_cfg.is_file:
+        if fluidd_cfg.is_file() and not Path(pdata_stem).joinpath("config", "fluidd.cfg").exists():
             os.symlink(fluidd_cfg, Path(pdata_stem).joinpath("config", "fluidd.cfg"))
 
 def do_list(tag: str):
@@ -141,5 +142,5 @@ def do_list(tag: str):
         print(f"\x1b[1;97m{count}: \x1b[33;1m{a.name : <}\x1b[97;22m {a_size : >16}\x1b[39m")
         count += 1
     print(f"\nTotal \x1b[33;1m{tag}\x1b[39;22m backups: "
-    f"\x1b[1;97m{num_archives : <}\x1b[22;39m files"
-    f"\x1b[97m{friendly_size(total_size) : >}\x1b[0m")
+    f"\x1b[1;97m{num_archives : <}\x1b[22;39m ", lambda _: "files" if count > 1 else "file"
+    f"\x1b[97m{friendly_size(total_size) : >}\x1b[0m\n\n")
